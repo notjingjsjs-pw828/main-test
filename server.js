@@ -28,20 +28,26 @@ app.post('/deploy', async (req, res) => {
   const extractPath = path.join(__dirname, appName);
 
   try {
-    // Step 1: Download ZIP
+    // بررسی نصب بودن git
+    const gitCheck = require('child_process').execSync('git --version').toString();
+    console.log('Git version:', gitCheck);
+
+    // دانلود ZIP
     const writer = fs.createWriteStream(zipPath);
     const response = await axios({ url: GITHUB_REPO_ZIP, method: 'GET', responseType: 'stream' });
     response.data.pipe(writer);
-    await new Promise((resolve) => writer.on('finish', resolve));
+    await new Promise(resolve => writer.on('finish', resolve));
 
-    // Step 2: Unzip
+    // اکسترکت ZIP
     const zip = new AdmZip(zipPath);
     zip.extractAllTo(extractPath, true);
     fs.unlinkSync(zipPath);
+
+    // پیدا کردن پوشه اصلی
     const innerFolder = fs.readdirSync(extractPath)[0];
     const finalPath = path.join(extractPath, innerFolder);
 
-    // Step 3: Edit .env
+    // ویرایش فایل .env
     const envFile = path.join(finalPath, '.env');
     let envContent = '';
     if (fs.existsSync(envFile)) {
@@ -54,9 +60,8 @@ app.post('/deploy', async (req, res) => {
     }
     fs.writeFileSync(envFile, envContent);
 
-    // Step 4: Create Heroku app
-    await axios.post(
-      'https://api.heroku.com/apps',
+    // ساخت اپ در هروکو
+    await axios.post('https://api.heroku.com/apps',
       { name: appName },
       {
         headers: {
@@ -67,7 +72,7 @@ app.post('/deploy', async (req, res) => {
       }
     );
 
-    // Step 5: Git deploy with simple-git
+    // deploy با git
     const git = simpleGit(finalPath);
     await git.init();
     await git.addRemote('heroku', `https://heroku:${HEROKU_API_KEY}@git.heroku.com/${appName}.git`);
