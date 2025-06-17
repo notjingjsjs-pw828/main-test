@@ -5,17 +5,14 @@ const AdmZip = require('adm-zip');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
+const simpleGit = require('simple-git');
 
 const HEROKU_API_KEY = "HRKU-AApVXwrdIydFr-9LZ1Wft5VZaZudD7TFylO8L8DOCpbQ_____w_ZDWksMubW";
 const GITHUB_REPO_ZIP = 'https://github.com/NOTHING-MD420/project-test/archive/refs/heads/main.zip';
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
-// حذف این خط:
-// app.use(express.static('public'));
 
-// اضافه کن این رو:
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -31,7 +28,7 @@ app.post('/deploy', async (req, res) => {
   const extractPath = path.join(__dirname, appName);
 
   try {
-    // Step 1: Download GitHub repo as ZIP
+    // Step 1: Download ZIP
     const writer = fs.createWriteStream(zipPath);
     const response = await axios({ url: GITHUB_REPO_ZIP, method: 'GET', responseType: 'stream' });
     response.data.pipe(writer);
@@ -44,7 +41,7 @@ app.post('/deploy', async (req, res) => {
     const innerFolder = fs.readdirSync(extractPath)[0];
     const finalPath = path.join(extractPath, innerFolder);
 
-    // Step 3: Modify .env file and update SESSION_ID
+    // Step 3: Edit .env
     const envFile = path.join(finalPath, '.env');
     let envContent = '';
     if (fs.existsSync(envFile)) {
@@ -57,7 +54,7 @@ app.post('/deploy', async (req, res) => {
     }
     fs.writeFileSync(envFile, envContent);
 
-    // Step 4: Create Heroku app using Platform API
+    // Step 4: Create Heroku app
     await axios.post(
       'https://api.heroku.com/apps',
       { name: appName },
@@ -65,16 +62,18 @@ app.post('/deploy', async (req, res) => {
         headers: {
           Authorization: `Bearer ${HEROKU_API_KEY}`,
           Accept: 'application/vnd.heroku+json; version=3',
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       }
     );
 
-    // Step 5: Initialize git repo and push to Heroku
-    execSync(`cd ${finalPath} && git init`);
-    execSync(`cd ${finalPath} && heroku git:remote -a ${appName}`);
-    execSync(`cd ${finalPath} && git add . && git commit -m "Initial deploy"`);
-    execSync(`cd ${finalPath} && git push heroku master -f`);
+    // Step 5: Git deploy with simple-git
+    const git = simpleGit(finalPath);
+    await git.init();
+    await git.addRemote('heroku', `https://heroku:${HEROKU_API_KEY}@git.heroku.com/${appName}.git`);
+    await git.add('.');
+    await git.commit('Initial deploy');
+    await git.push('heroku', 'master', { '--force': null });
 
     res.send(`✅ App deployed successfully: <a href="https://${appName}.herokuapp.com" target="_blank">${appName}.herokuapp.com</a>`);
   } catch (err) {
@@ -85,5 +84,5 @@ app.post('/deploy', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

@@ -2,15 +2,16 @@
   "name": "heroku-auto-deploy",
   "version": "1.0.0",
   "description": "Auto deploy GitHub repo to Heroku with session injection",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.9",
     "axios": "^1.5.0",
     "body-parser": "^1.20.2",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "simple-git": "^3.19.1"
   },
   "engines": {
     "node": ">=14"
