@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Heroku Auto Deploy</title>
   <style>
     body {
@@ -46,6 +46,7 @@
       margin-bottom: 20px;
       font-size: 14px;
       outline: none;
+      direction: ltr;
     }
 
     button {
@@ -78,10 +79,10 @@
     <h2>🚀 Deploy WhatsApp Bot to Heroku</h2>
     <form method="POST" action="/deploy">
       <label for="appName">Heroku App Name (optional)</label>
-      <input type="text" name="appName" placeholder="e.g. ben-bot" />
+      <input type="text" name="appName" placeholder="e.g. my-bot-123" />
 
       <label for="sessionId">Session ID *</label>
-      <input type="text" name="sessionId" placeholder="Paste your session ID" required />
+      <input type="text" name="sessionId" placeholder="Enter your session ID" required />
 
       <button type="submit">Deploy Now</button>
     </form>
