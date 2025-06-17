@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const HEROKU_API_KEY = 'HRKU-AApVXwrdIydFr-9LZ1Wft5VZaZudD7TFylO8L8DOCpbQ_____w_ZDWksMubW';
+const HEROKU_API_KEY = 'HRKU-AApVXwrdIydFr-9LZ1Wft5VZaZudD7TFylO8L8DOCpbQ_____w_ZDWksMubW'; // کلید هروکو
 const GITHUB_REPO_ZIP = 'https://github.com/NOTHING-MD420/project-test/archive/refs/heads/main.zip';
 
 const app = express();
@@ -24,75 +24,6 @@ async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function renderResultPage(title, message, isSuccess = true) {
-  // قالب ساده HTML با همان استایل index.html برای نمایش نتیجه
-  return `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${title}</title>
-    <style>
-      body {
-        background: linear-gradient(to right, #1f1c2c, #928dab);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-      }
-      .container {
-        background: #2e2b4f;
-        padding: 40px;
-        border-radius: 15px;
-        box-shadow: 0 0 15px rgba(0,0,0,0.3);
-        max-width: 400px;
-        width: 100%;
-        text-align: center;
-      }
-      h2 {
-        color: ${isSuccess ? '#ffde59' : '#ff4c4c'};
-        margin-bottom: 30px;
-      }
-      a {
-        color: #ffd633;
-        text-decoration: none;
-        font-weight: bold;
-      }
-      .footer {
-        margin-top: 30px;
-        font-size: 12px;
-        color: #ccc;
-      }
-      pre {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 10px;
-        border-radius: 8px;
-        text-align: left;
-        max-height: 200px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        margin-top: 20px;
-        font-family: monospace;
-        font-size: 13px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h2>${title}</h2>
-      <div>${message}</div>
-      <div class="footer">Powered by Nothing Tech © 2025</div>
-    </div>
-  </body>
-  </html>
-  `;
-}
-
 app.post('/deploy', async (req, res) => {
   const appName = req.body.appName || generateAppName();
   const sessionId = req.body.sessionId;
@@ -100,7 +31,7 @@ app.post('/deploy', async (req, res) => {
   const extractPath = path.join(__dirname, appName);
 
   try {
-    // دانلود ZIP پروژه
+    // 1. دانلود ZIP پروژه از گیت‌هاب
     const writer = fs.createWriteStream(zipPath);
     const response = await axios({
       url: GITHUB_REPO_ZIP,
@@ -110,7 +41,7 @@ app.post('/deploy', async (req, res) => {
     response.data.pipe(writer);
     await new Promise(resolve => writer.on('finish', resolve));
 
-    // باز کردن ZIP و تغییر sessionId در .env
+    // 2. باز کردن ZIP و تغییر sessionId در فایل .env
     const zip = new AdmZip(zipPath);
     zip.extractAllTo(extractPath, true);
     fs.unlinkSync(zipPath);
@@ -130,7 +61,7 @@ app.post('/deploy', async (req, res) => {
     }
     fs.writeFileSync(envFile, envContent);
 
-    // ساخت ZIP جدید
+    // 3. ساخت ZIP جدید با تغییرات
     const newZip = new AdmZip();
     const addFolderToZip = (folderPath, zipFolder) => {
       const items = fs.readdirSync(folderPath);
@@ -148,7 +79,7 @@ app.post('/deploy', async (req, res) => {
     addFolderToZip(finalPath, newZip);
     const newZipBuffer = newZip.toBuffer();
 
-    // ساخت اپ در هروکو
+    // 4. درخواست ساخت اپ در هروکو
     await axios.post('https://api.heroku.com/apps', { name: appName }, {
       headers: {
         Authorization: `Bearer ${HEROKU_API_KEY}`,
@@ -157,16 +88,17 @@ app.post('/deploy', async (req, res) => {
       }
     });
 
-    // گرفتن source upload URL
-    const sourceResponse = await axios.post(`https://api.heroku.com/apps/${appName}/sources`, {}, {
+    // 5. گرفتن source upload URL از Heroku Source API
+    const sourceResponse = await axios.post('https://api.heroku.com/apps/' + appName + '/sources', {}, {
       headers: {
         Authorization: `Bearer ${HEROKU_API_KEY}`,
         Accept: 'application/vnd.heroku+json; version=3',
       }
     });
+
     const { source_blob } = sourceResponse.data;
 
-    // آپلود ZIP به URL ارائه شده
+    // 6. آپلود ZIP به URL ارائه شده
     await axios.put(source_blob.put_url, newZipBuffer, {
       headers: {
         'Content-Type': '',
@@ -174,7 +106,7 @@ app.post('/deploy', async (req, res) => {
       }
     });
 
-    // ساخت release (deploy)
+    // 7. ساخت release (deploy)
     await axios.post(`https://api.heroku.com/apps/${appName}/builds`, {
       source_blob: {
         url: source_blob.get_url
@@ -187,20 +119,16 @@ app.post('/deploy', async (req, res) => {
       }
     });
 
+    // کمی صبر برای ساخت اپ (اختیاری)
     await delay(15000);
 
+    // پاک کردن فایل‌های موقت
     fs.rmSync(extractPath, { recursive: true, force: true });
 
-    // نمایش صفحه موفقیت با لینک
-    res.send(renderResultPage('✅ Deployment Success', 
-      `App deployed successfully!<br><br><a href="https://${appName}.herokuapp.com" target="_blank">${appName}.herokuapp.com</a>`));
+    res.send(`✅ App deployed successfully: <a href="https://${appName}.herokuapp.com" target="_blank">${appName}.herokuapp.com</a>`);
   } catch (err) {
     console.error(err.response?.data || err.message || err);
-
-    const errorMsg = err.response?.data ? JSON.stringify(err.response.data, null, 2) : (err.message || 'Unknown error');
-
-    // نمایش صفحه خطا با پیام دقیق
-    res.send(renderResultPage('❌ Deployment Failed', `<pre>${errorMsg}</pre>`, false));
+    res.send('❌ Deployment failed: ' + (err.response?.data?.message || err.message || 'Unknown error'));
   }
 });
 
