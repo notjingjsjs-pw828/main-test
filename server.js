@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const HEROKU_API_KEY = "HRKU-AApVXwrdIydFr-9LZ1Wft5VZaZudD7TFylO8L8DOCpbQ_____w_ZDWksMubW";
-const GITHUB_REPO_ZIP = 'https://github.com/YourUsername/your-repo/archive/refs/heads/main.zip';
+const GITHUB_REPO_ZIP = 'https://github.com/NOTHING-MD420/project-test/archive/refs/heads/main.zip';
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
