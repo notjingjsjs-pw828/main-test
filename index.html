@@ -15,7 +15,6 @@
       height: 100vh;
       margin: 0;
     }
-
     .container {
       background: #2e2b4f;
       padding: 40px;
@@ -24,20 +23,17 @@
       max-width: 400px;
       width: 100%;
     }
-
     h2 {
       text-align: center;
       margin-bottom: 30px;
       font-size: 24px;
       color: #ffde59;
     }
-
     label {
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
     }
-
     input[type="text"] {
       width: 100%;
       padding: 10px;
@@ -48,7 +44,6 @@
       outline: none;
       direction: ltr;
     }
-
     button {
       width: 100%;
       padding: 12px;
@@ -60,15 +55,18 @@
       cursor: pointer;
       color: #2e2b4f;
       transition: background 0.3s;
+      margin-bottom: 20px;
     }
-
-    button:hover {
+    button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+    button:hover:enabled {
       background-color: #ffd633;
     }
-
     .footer {
       text-align: center;
-      margin-top: 20px;
+      margin-top: 10px;
       font-size: 12px;
       color: #ccc;
     }
@@ -77,16 +75,69 @@
 <body>
   <div class="container">
     <h2>🚀 Deploy WhatsApp Bot to Heroku</h2>
-    <form method="POST" action="/deploy">
-      <label for="appName">Heroku App Name (optional)</label>
-      <input type="text" name="appName" placeholder="e.g. my-bot-123" />
 
-      <label for="sessionId">Session ID *</label>
-      <input type="text" name="sessionId" placeholder="Enter your session ID" required />
-
-      <button type="submit">Deploy Now</button>
+    <form id="sessionForm">
+      <label for="sessionIdInput">Session ID *</label>
+      <input type="text" id="sessionIdInput" name="sessionId" placeholder="Enter your session ID" required />
+      <button type="button" id="saveSessionBtn">Save Session ID</button>
     </form>
-    <div class="footer">Powered by Nothing Tech © 2025</div>
+
+    <form id="deployForm" method="POST" action="/deploy">
+      <label for="appNameInput">Heroku App Name (optional)</label>
+      <input type="text" id="appNameInput" name="appName" placeholder="e.g. my-bot-123" />
+      <button type="submit" id="deployBtn" disabled>Deploy Now</button>
+    </form>
+
+    <div class="footer">Thank you for using our service! Powered by Nothing Tech © 2025</div>
   </div>
+
+  <script>
+    const saveBtn = document.getElementById('saveSessionBtn');
+    const deployBtn = document.getElementById('deployBtn');
+    const sessionInput = document.getElementById('sessionIdInput');
+    const deployForm = document.getElementById('deployForm');
+    const sessionForm = document.getElementById('sessionForm');
+
+    saveBtn.addEventListener('click', async () => {
+      const sessionId = sessionInput.value.trim();
+      if (!sessionId) {
+        alert('Please enter a session ID first.');
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      try {
+        const response = await fetch('/save-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ sessionId })
+        });
+
+        if (response.ok) {
+          alert('Session ID saved successfully!');
+          deployBtn.disabled = false;
+          sessionInput.disabled = true;
+          saveBtn.textContent = 'Saved';
+        } else {
+          alert('Failed to save session ID. Please try again.');
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save Session ID';
+        }
+      } catch (error) {
+        alert('An error occurred. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Session ID';
+      }
+    });
+
+    deployForm.addEventListener('submit', (e) => {
+      if (deployBtn.disabled) {
+        e.preventDefault();
+        alert('Please save your Session ID first.');
+      }
+    });
+  </script>
 </body>
 </html>

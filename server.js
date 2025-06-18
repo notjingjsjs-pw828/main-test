@@ -20,6 +20,43 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+app.post('/save-session', (req, res) => {
+  const sessionId = req.body.sessionId;
+  const envPath = path.join(__dirname, 'bot', '.env');
+
+  fs.readFile(envPath, 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Failed to read .env file');
+    }
+
+    let lines = data.split('\n');
+    let found = false;
+
+    lines = lines.map(line => {
+      if (line.startsWith('SESSION_ID=')) {
+        found = true;
+        return `SESSION_ID=${sessionId}`;
+      }
+      return line;
+    });
+
+    if (!found) {
+      lines.push(`SESSION_ID=${sessionId}`);
+    }
+
+    const newEnv = lines.join('\n');
+
+    fs.writeFile(envPath, newEnv, (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Failed to save session ID');
+      }
+      res.send('Session ID saved successfully');
+    });
+  });
+});
+
 app.post('/deploy', async (req, res) => {
   const appName = req.body.appName || generateAppName();
   const sessionId = req.body.sessionId;

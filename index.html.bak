@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Heroku Auto Deploy</title>
+  <style>
+    body {
+      background: linear-gradient(to right, #1f1c2c, #928dab);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: #2e2b4f;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 24px;
+      color: #ffde59;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 20px;
+      font-size: 14px;
+      outline: none;
+      direction: ltr;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #ffde59;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      color: #2e2b4f;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #ffd633;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🚀 Deploy WhatsApp Bot to Heroku</h2>
+    <form method="POST" action="/deploy">
+      <label for="appName">Heroku App Name (optional)</label>
+      <input type="text" name="appName" placeholder="e.g. my-bot-123" />
+
+      <label for="sessionId">Session ID *</label>
+      <input type="text" name="sessionId" placeholder="Enter your session ID" required />
+
+      <button type="submit">Deploy Now</button>
+    </form>
+    <div class="footer">Powered by Nothing Tech © 2025</div>
+  </div>
+</body>
+</html>
