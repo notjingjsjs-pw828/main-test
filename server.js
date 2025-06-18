@@ -1,7 +1,8 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const AdmZip = require('adm-zip');
+const os = require('os');
+const tar = require('tar');
 const axios = require('axios');
 const crypto = require('crypto');
 const bodyParser = require('body-parser');
@@ -25,23 +26,17 @@ app.post('/deploy', async (req, res) => {
   const botPath = path.join(__dirname, 'bot');
 
   try {
-    // ZIP کردن پوشه bot
-    const zip = new AdmZip();
-    const addFolder = (folderPath, zipFolder) => {
-      const items = fs.readdirSync(folderPath);
-      items.forEach(item => {
-        const fullPath = path.join(folderPath, item);
-        const stats = fs.statSync(fullPath);
-        if (stats.isDirectory()) {
-          const subFolder = zipFolder.addFolder(item);
-          addFolder(fullPath, subFolder);
-        } else {
-          zipFolder.addFile(item, fs.readFileSync(fullPath));
-        }
-      });
-    };
-    addFolder(botPath, zip);
-    const zipBuffer = zip.toBuffer();
+    // ساخت فایل tar.gz موقت از bot/
+    const tmpTarPath = path.join(os.tmpdir(), `${appName}.tar.gz`);
+    await tar.c(
+      {
+        gzip: true,
+        file: tmpTarPath,
+        cwd: botPath,
+      },
+      fs.readdirSync(botPath)
+    );
+    const tarBuffer = fs.readFileSync(tmpTarPath);
 
     // ساخت اپ جدید
     await axios.post('https://api.heroku.com/apps', { name: appName }, {
@@ -73,11 +68,11 @@ app.post('/deploy', async (req, res) => {
 
     const { source_blob } = sourceRes.data;
 
-    // آپلود ZIP
-    await axios.put(source_blob.put_url, zipBuffer, {
+    // آپلود TAR.GZ
+    await axios.put(source_blob.put_url, tarBuffer, {
       headers: {
         'Content-Type': '',
-        'Content-Length': zipBuffer.length
+        'Content-Length': tarBuffer.length
       }
     });
 

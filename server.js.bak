@@ -15,10 +15,6 @@ function generateAppName() {
   return 'bot-' + crypto.randomBytes(3).toString('hex');
 }
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -27,22 +23,9 @@ app.post('/deploy', async (req, res) => {
   const appName = req.body.appName || generateAppName();
   const sessionId = req.body.sessionId;
   const botPath = path.join(__dirname, 'bot');
-  const envPath = path.join(botPath, '.env');
 
   try {
-    // ساخت یا ویرایش .env
-    let envContent = '';
-    if (fs.existsSync(envPath)) {
-      envContent = fs.readFileSync(envPath, 'utf8');
-    }
-    if (envContent.includes('SESSION_ID=')) {
-      envContent = envContent.replace(/SESSION_ID=.*/g, `SESSION_ID=${sessionId}`);
-    } else {
-      envContent += `\nSESSION_ID=${sessionId}`;
-    }
-    fs.writeFileSync(envPath, envContent);
-
-    // ساخت ZIP از پوشه bot
+    // ZIP کردن پوشه bot
     const zip = new AdmZip();
     const addFolder = (folderPath, zipFolder) => {
       const items = fs.readdirSync(folderPath);
@@ -60,12 +43,23 @@ app.post('/deploy', async (req, res) => {
     addFolder(botPath, zip);
     const zipBuffer = zip.toBuffer();
 
-    // ایجاد اپ جدید
+    // ساخت اپ جدید
     await axios.post('https://api.heroku.com/apps', { name: appName }, {
       headers: {
         Authorization: `Bearer ${HEROKU_API_KEY}`,
         Accept: 'application/vnd.heroku+json; version=3',
         'Content-Type': 'application/json',
+      }
+    });
+
+    // ست کردن SESSION_ID در config vars
+    await axios.patch(`https://api.heroku.com/apps/${appName}/config-vars`, {
+      SESSION_ID: sessionId
+    }, {
+      headers: {
+        Authorization: `Bearer ${HEROKU_API_KEY}`,
+        Accept: 'application/vnd.heroku+json; version=3',
+        'Content-Type': 'application/json'
       }
     });
 
@@ -87,8 +81,8 @@ app.post('/deploy', async (req, res) => {
       }
     });
 
-    // ساخت release/build
-    await axios.post(`https://api.heroku.com/apps/${appName}/builds`, {
+    // ساخت Build جدید
+    const buildRes = await axios.post(`https://api.heroku.com/apps/${appName}/builds`, {
       source_blob: { url: source_blob.get_url }
     }, {
       headers: {
@@ -98,21 +92,37 @@ app.post('/deploy', async (req, res) => {
       }
     });
 
-    await delay(15000); // اختیاری
+    const buildId = buildRes.data.id;
+
+    // گرفتن خروجی build logs
+    const buildInfo = await axios.get(`https://api.heroku.com/apps/${appName}/builds/${buildId}`, {
+      headers: {
+        Authorization: `Bearer ${HEROKU_API_KEY}`,
+        Accept: 'application/vnd.heroku+json; version=3',
+      }
+    });
+
+    const logUrl = buildInfo.data.output_stream_url;
+    const logs = await axios.get(logUrl).then(r => r.data);
 
     res.send(`
-      <html><body style="text-align:center;font-family:sans-serif;margin-top:50px">
-      ✅ App deployed successfully!<br><br>
-      <a href="https://${appName}.herokuapp.com" target="_blank">${appName}.herokuapp.com</a>
-      </body></html>
+      <html>
+      <body style="background:#111;color:#fff;padding:20px;font-family:monospace">
+        <h2 style="color:#0f0">✅ App Deployed: <a style="color:#0ff" href="https://${appName}.herokuapp.com" target="_blank">${appName}.herokuapp.com</a></h2>
+        <h3 style="margin-top:30px;color:#ffde59">📄 Build Logs:</h3>
+        <pre style="background:#222;padding:15px;border-radius:10px;max-height:500px;overflow:auto">${logs}</pre>
+      </body>
+      </html>
     `);
 
   } catch (err) {
     console.error(err.response?.data || err.message || err);
     res.send(`
-      <html><body style="color:red;text-align:center;margin-top:50px;font-family:sans-serif">
-      ❌ Deployment failed:<br><pre>${err.message}</pre>
-      </body></html>
+      <html>
+      <body style="color:red;text-align:center;margin-top:50px;font-family:sans-serif">
+        ❌ Deployment failed:<br><pre>${err.message}</pre>
+      </body>
+      </html>
     `);
   }
 });
