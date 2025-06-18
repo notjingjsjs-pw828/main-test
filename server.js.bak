@@ -24,15 +24,103 @@ app.post('/save-session', (req, res) => {
   const sessionId = req.body.sessionId;
   const envPath = path.join(__dirname, 'bot', '.env');
 
-  // ذخیره SESSION_ID در فایل .env پوشه bot
-  const envContent = `SESSION_ID=${sessionId}\n`;
-  fs.writeFile(envPath, envContent, (err) => {
+  fs.readFile(envPath, 'utf8', (err, data) => {
     if (err) {
       console.error(err);
-      return res.status(500).send('Failed to save session ID');
+      return res.status(500).send('Failed to read .env file');
     }
-    res.send('Session ID saved successfully');
+
+    let lines = data.split('\n');
+    let found = false;
+
+    lines = lines.map(line => {
+      if (line.startsWith('SESSION_ID=')) {
+        found = true;
+        return `SESSION_ID=${sessionId}`;
+      }
+      return line;
+    });
+
+    if (!found) {
+      lines.push(`SESSION_ID=${sessionId}`);
+    }
+
+    const newEnv = lines.join('\n');
+
+    fs.writeFile(envPath, newEnv, (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Failed to save session ID');
+      }
+      res.send('Session ID saved successfully');
+    });
   });
+});
+
+app.get('/logs/:app', async (req, res) => {
+  const appName = req.params.app;
+
+  try {
+    // ساخت log session زنده با tail=true
+    const logRes = await axios.post(`https://api.heroku.com/apps/${appName}/log-sessions`, {
+      dyno: "web",
+      lines: 100,
+      source: "app",
+      tail: true
+    }, {
+      headers: {
+        Authorization: `Bearer ${HEROKU_API_KEY}`,
+        Accept: 'application/vnd.heroku+json; version=3',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const logStreamURL = logRes.data.logplex_url;
+
+    // صفحه HTML با iframe یا fetch به logplex
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <title>Live Logs - ${appName}</title>
+        <style>
+          body {
+            background: #111;
+            color: #fff;
+            font-family: monospace;
+            padding: 20px;
+          }
+          h2 { color: #0ff; }
+          pre {
+            background: #222;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 90vh;
+            overflow: auto;
+            white-space: pre-wrap;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>📺 Live Logs for: ${appName}</h2>
+        <pre id="logbox">Connecting to Heroku log stream...</pre>
+
+        <script>
+          const logbox = document.getElementById('logbox');
+          const eventSource = new EventSource('/stream-log?url=${encodeURIComponent(logStreamURL)}');
+
+          eventSource.onmessage = function(event) {
+            logbox.textContent += '\\n' + event.data;
+            logbox.scrollTop = logbox.scrollHeight;
+          };
+        </script>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("❌ Could not get logs for this app.");
+  }
 });
 
 app.post('/deploy', async (req, res) => {

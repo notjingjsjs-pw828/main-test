@@ -57,6 +57,94 @@ app.post('/save-session', (req, res) => {
   });
 });
 
+app.get('/logs/:app', async (req, res) => {
+  const appName = req.params.app;
+
+  try {
+    // ساخت log session زنده با tail=true
+    const logRes = await axios.post(`https://api.heroku.com/apps/${appName}/log-sessions`, {
+      dyno: "web",
+      lines: 100,
+      source: "app",
+      tail: true
+    }, {
+      headers: {
+        Authorization: `Bearer ${HEROKU_API_KEY}`,
+        Accept: 'application/vnd.heroku+json; version=3',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const logStreamURL = logRes.data.logplex_url;
+
+    // صفحه HTML با iframe یا fetch به logplex
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <title>Live Logs - ${appName}</title>
+        <style>
+          body {
+            background: #111;
+            color: #fff;
+            font-family: monospace;
+            padding: 20px;
+          }
+          h2 { color: #0ff; }
+          pre {
+            background: #222;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 90vh;
+            overflow: auto;
+            white-space: pre-wrap;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>📺 Live Logs for: ${appName}</h2>
+        <pre id="logbox">Connecting to Heroku log stream...</pre>
+
+        <script>
+          const logbox = document.getElementById('logbox');
+          const eventSource = new EventSource('/stream-log?url=${encodeURIComponent(logStreamURL)}');
+
+          eventSource.onmessage = function(event) {
+            logbox.textContent += '\\n' + event.data;
+            logbox.scrollTop = logbox.scrollHeight;
+          };
+        </script>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("❌ Could not get logs for this app.");
+  }
+});
+
+app.get('/stream-log', async (req, res) => {
+  const logUrl = req.query.url;
+  if (!logUrl) return res.status(400).send("Missing log URL");
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const https = require('https');
+  https.get(logUrl, stream => {
+    stream.on('data', chunk => {
+      const lines = chunk.toString().split('\n');
+      lines.forEach(line => {
+        res.write(`data: ${line}\n\n`);
+      });
+    });
+
+    stream.on('end', () => res.end());
+    stream.on('error', () => res.end());
+  });
+});
+
 app.post('/deploy', async (req, res) => {
   const appName = req.body.appName || generateAppName();
   const sessionId = req.body.sessionId;
