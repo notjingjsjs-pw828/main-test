@@ -123,6 +123,37 @@ app.get('/logs/:app', async (req, res) => {
   }
 });
 
+app.post('/delete-app', async (req, res) => {
+  const appName = req.body.appName;
+
+  if (!appName) {
+    return res.status(400).send('App name is required!');
+  }
+
+  try {
+    await axios.delete(`https://api.heroku.com/apps/${appName}`, {
+      headers: {
+        Authorization: `Bearer ${HEROKU_API_KEY}`,
+        Accept: 'application/vnd.heroku+json; version=3',
+      }
+    });
+
+    res.send(`
+      <html><body style="color:#0f0;font-family:sans-serif;text-align:center;margin-top:50px">
+        ✅ App <b>${appName}</b> has been deleted successfully!
+      </body></html>
+    `);
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).send(`
+      <html><body style="color:red;text-align:center;font-family:sans-serif;margin-top:50px">
+        ❌ Failed to delete app <b>${appName}</b><br>
+        <pre>${err.response?.data?.message || err.message}</pre>
+      </body></html>
+    `);
+  }
+});
+
 app.get('/stream-log', async (req, res) => {
   const logUrl = req.query.url;
   if (!logUrl) return res.status(400).send("Missing log URL");

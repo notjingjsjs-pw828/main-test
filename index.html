@@ -119,6 +119,13 @@
       <button type="submit" id="deployBtn" disabled>Deploy Now</button>
       <div class="spinner" id="spinner"></div>
     </form>
+    
+    <!-- Delete App Form -->
+    <div id="deleteAppSection" style="margin-top:20px">
+      <label for="deleteAppInput">Heroku App Name (for Deletion)</label>
+      <input type="text" id="deleteAppInput" placeholder="e.g. my-bot-123" />
+      <button type="button" id="deleteAppBtn" style="background-color:#f44336;color:#fff">Delete App</button>
+    </div>
 
     <!-- Check Logs -->
     <div id="logsSection">
@@ -133,82 +140,92 @@
   </div>
 
   <script>
-    const saveBtn = document.getElementById('saveSessionBtn');
-    const deployBtn = document.getElementById('deployBtn');
-    const sessionInput = document.getElementById('sessionIdInput');
-    const deployForm = document.getElementById('deployForm');
-    const spinner = document.getElementById('spinner');
+  const saveBtn = document.getElementById('saveSessionBtn');
+  const deployBtn = document.getElementById('deployBtn');
+  const sessionInput = document.getElementById('sessionIdInput');
+  const deployForm = document.getElementById('deployForm');
+  const spinner = document.getElementById('spinner');
 
-    const checkLogsBtn = document.getElementById('checkLogsBtn');
-    const logInput = document.getElementById('logAppInput');
-    const logSpinner = document.getElementById('logSpinner');
-    const logsOutput = document.getElementById('logsOutput');
+  const appNameInput = document.getElementById('appNameInput');
 
-    saveBtn.addEventListener('click', async () => {
-      const sessionId = sessionInput.value.trim();
-      if (!sessionId) {
-        alert('Please enter a session ID first.');
-        return;
-      }
+  const checkLogsBtn = document.getElementById('checkLogsBtn');
+  const logInput = document.getElementById('logAppInput');
+  const logSpinner = document.getElementById('logSpinner');
+  const logsOutput = document.getElementById('logsOutput');
 
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving...';
+  // Save session
+  saveBtn.addEventListener('click', async () => {
+    const sessionId = sessionInput.value.trim();
+    if (!sessionId) {
+      alert('Please enter a session ID first.');
+      return;
+    }
 
-      try {
-        const response = await fetch('/save-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ sessionId })
-        });
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
 
-        if (response.ok) {
-          alert('Session ID saved successfully!');
-          deployBtn.disabled = false;
-          sessionInput.disabled = true;
-          saveBtn.textContent = 'Saved';
-        } else {
-          alert('Failed to save session ID. Please try again.');
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Save Session ID';
-        }
-      } catch (error) {
-        alert('An error occurred. Please try again.');
+    try {
+      const response = await fetch('/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ sessionId })
+      });
+
+      if (response.ok) {
+        alert('Session ID saved successfully!');
+        deployBtn.disabled = false;
+        sessionInput.disabled = true;
+        saveBtn.textContent = 'Saved';
+      } else {
+        alert('Failed to save session ID. Please try again.');
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Session ID';
       }
-    });
+    } catch (error) {
+      alert('An error occurred. Please try again.');
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Session ID';
+    }
+  });
 
-    deployForm.addEventListener('submit', () => {
-      deployBtn.disabled = true;
-      deployBtn.textContent = 'Deploying...';
-      spinner.style.display = 'block';
-    });
+  // Deploy form - lowercase app name before submit
+  deployForm.addEventListener('submit', () => {
+    // تبدیل نام اپ به lowercase
+    if (appNameInput.value.trim() !== '') {
+      appNameInput.value = appNameInput.value.trim().toLowerCase();
+    }
 
-    checkLogsBtn.addEventListener('click', async () => {
-      const appName = logInput.value.trim();
-      if (!appName) {
-        alert('Please enter Heroku app name.');
-        return;
-      }
+    deployBtn.disabled = true;
+    deployBtn.textContent = 'Deploying...';
+    spinner.style.display = 'block';
+  });
 
-      checkLogsBtn.disabled = true;
-      logSpinner.style.display = 'block';
-      logsOutput.style.display = 'none';
-      logsOutput.textContent = '';
+  // Check logs
+  checkLogsBtn.addEventListener('click', async () => {
+    const appName = logInput.value.trim();
+    if (!appName) {
+      alert('Please enter Heroku app name.');
+      return;
+    }
 
-      try {
-        const res = await fetch(`/logs?app=${encodeURIComponent(appName)}`);
-        const text = await res.text();
-        logsOutput.style.display = 'block';
-        logsOutput.textContent = text || 'No logs found.';
-      } catch (err) {
-        logsOutput.style.display = 'block';
-        logsOutput.textContent = 'Error fetching logs.';
-      }
+    checkLogsBtn.disabled = true;
+    logSpinner.style.display = 'block';
+    logsOutput.style.display = 'none';
+    logsOutput.textContent = '';
 
-      checkLogsBtn.disabled = false;
-      logSpinner.style.display = 'none';
-    });
-  </script>
+    try {
+      const res = await fetch(`/logs?app=${encodeURIComponent(appName)}`);
+      const text = await res.text();
+      logsOutput.style.display = 'block';
+      logsOutput.textContent = text || 'No logs found.';
+    } catch (err) {
+      logsOutput.style.display = 'block';
+      logsOutput.textContent = 'Error fetching logs.';
+    }
+
+    checkLogsBtn.disabled = false;
+    logSpinner.style.display = 'none';
+  });
+</script>
 </body>
 </html>

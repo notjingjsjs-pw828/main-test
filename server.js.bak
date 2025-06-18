@@ -123,6 +123,28 @@ app.get('/logs/:app', async (req, res) => {
   }
 });
 
+app.get('/stream-log', async (req, res) => {
+  const logUrl = req.query.url;
+  if (!logUrl) return res.status(400).send("Missing log URL");
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const https = require('https');
+  https.get(logUrl, stream => {
+    stream.on('data', chunk => {
+      const lines = chunk.toString().split('\n');
+      lines.forEach(line => {
+        res.write(`data: ${line}\n\n`);
+      });
+    });
+
+    stream.on('end', () => res.end());
+    stream.on('error', () => res.end());
+  });
+});
+
 app.post('/deploy', async (req, res) => {
   const appName = req.body.appName || generateAppName();
   const sessionId = req.body.sessionId;
