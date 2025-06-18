@@ -1,184 +1,95 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const axios = require('axios');
-const AdmZip = require('adm-zip');
 const fs = require('fs');
 const path = require('path');
+const AdmZip = require('adm-zip');
+const axios = require('axios');
 const crypto = require('crypto');
+const bodyParser = require('body-parser');
 
 const HEROKU_API_KEY = 'HRKU-AApVXwrdIydFr-9LZ1Wft5VZaZudD7TFylO8L8DOCpbQ_____w_ZDWksMubW';
-const GITHUB_REPO_ZIP = 'https://github.com/NOTHING-MD420/project-test/archive/refs/heads/main.zip';
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
 
 function generateAppName() {
   return 'bot-' + crypto.randomBytes(3).toString('hex');
 }
 
-async function delay(ms) {
+function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function renderResultPage(title, message, isSuccess = true) {
-  // قالب ساده HTML با همان استایل index.html برای نمایش نتیجه
-  return `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${title}</title>
-    <style>
-      body {
-        background: linear-gradient(to right, #1f1c2c, #928dab);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-      }
-      .container {
-        background: #2e2b4f;
-        padding: 40px;
-        border-radius: 15px;
-        box-shadow: 0 0 15px rgba(0,0,0,0.3);
-        max-width: 400px;
-        width: 100%;
-        text-align: center;
-      }
-      h2 {
-        color: ${isSuccess ? '#ffde59' : '#ff4c4c'};
-        margin-bottom: 30px;
-      }
-      a {
-        color: #ffd633;
-        text-decoration: none;
-        font-weight: bold;
-      }
-      .footer {
-        margin-top: 30px;
-        font-size: 12px;
-        color: #ccc;
-      }
-      pre {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 10px;
-        border-radius: 8px;
-        text-align: left;
-        max-height: 200px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        margin-top: 20px;
-        font-family: monospace;
-        font-size: 13px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h2>${title}</h2>
-      <div>${message}</div>
-      <div class="footer">Powered by Nothing Tech © 2025</div>
-    </div>
-  </body>
-  </html>
-  `;
-}
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 app.post('/deploy', async (req, res) => {
   const appName = req.body.appName || generateAppName();
   const sessionId = req.body.sessionId;
-  const zipPath = path.join(__dirname, `${appName}.zip`);
-  const extractPath = path.join(__dirname, appName);
+  const botPath = path.join(__dirname, 'bot');
+  const envPath = path.join(botPath, '.env');
 
   try {
-    // دانلود ZIP پروژه
-    const writer = fs.createWriteStream(zipPath);
-    const response = await axios({
-      url: GITHUB_REPO_ZIP,
-      method: 'GET',
-      responseType: 'stream'
-    });
-    response.data.pipe(writer);
-    await new Promise(resolve => writer.on('finish', resolve));
-
-    // باز کردن ZIP و تغییر sessionId در .env
-    const zip = new AdmZip(zipPath);
-    zip.extractAllTo(extractPath, true);
-    fs.unlinkSync(zipPath);
-    const innerFolder = fs.readdirSync(extractPath)[0];
-    const finalPath = path.join(extractPath, innerFolder);
-
-    // خواندن یا ایجاد .env
-    const envFile = path.join(finalPath, '.env');
+    // ساخت یا ویرایش .env
     let envContent = '';
-    if (fs.existsSync(envFile)) {
-      envContent = fs.readFileSync(envFile, 'utf8');
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
     }
     if (envContent.includes('SESSION_ID=')) {
       envContent = envContent.replace(/SESSION_ID=.*/g, `SESSION_ID=${sessionId}`);
     } else {
-      envContent += `\nSESSION_ID=${sessionId}\n`;
+      envContent += `\nSESSION_ID=${sessionId}`;
     }
-    fs.writeFileSync(envFile, envContent);
+    fs.writeFileSync(envPath, envContent);
 
-    // ساخت ZIP جدید
-    const newZip = new AdmZip();
-    const addFolderToZip = (folderPath, zipFolder) => {
+    // ساخت ZIP از پوشه bot
+    const zip = new AdmZip();
+    const addFolder = (folderPath, zipFolder) => {
       const items = fs.readdirSync(folderPath);
       items.forEach(item => {
         const fullPath = path.join(folderPath, item);
         const stats = fs.statSync(fullPath);
         if (stats.isDirectory()) {
-          const childZipFolder = zipFolder.addFolder(item);
-          addFolderToZip(fullPath, childZipFolder);
+          const subFolder = zipFolder.addFolder(item);
+          addFolder(fullPath, subFolder);
         } else {
           zipFolder.addFile(item, fs.readFileSync(fullPath));
         }
       });
     };
-    addFolderToZip(finalPath, newZip);
-    const newZipBuffer = newZip.toBuffer();
+    addFolder(botPath, zip);
+    const zipBuffer = zip.toBuffer();
 
-    // ساخت اپ در هروکو
+    // ایجاد اپ جدید
     await axios.post('https://api.heroku.com/apps', { name: appName }, {
       headers: {
         Authorization: `Bearer ${HEROKU_API_KEY}`,
         Accept: 'application/vnd.heroku+json; version=3',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       }
     });
 
-    // گرفتن source upload URL
-    const sourceResponse = await axios.post(`https://api.heroku.com/apps/${appName}/sources`, {}, {
+    // گرفتن لینک آپلود سورس
+    const sourceRes = await axios.post(`https://api.heroku.com/apps/${appName}/sources`, {}, {
       headers: {
         Authorization: `Bearer ${HEROKU_API_KEY}`,
         Accept: 'application/vnd.heroku+json; version=3',
       }
     });
-    const { source_blob } = sourceResponse.data;
 
-    // آپلود ZIP به URL ارائه شده
-    await axios.put(source_blob.put_url, newZipBuffer, {
+    const { source_blob } = sourceRes.data;
+
+    // آپلود ZIP
+    await axios.put(source_blob.put_url, zipBuffer, {
       headers: {
         'Content-Type': '',
-        'Content-Length': newZipBuffer.length
+        'Content-Length': zipBuffer.length
       }
     });
 
-    // ساخت release (deploy)
+    // ساخت release/build
     await axios.post(`https://api.heroku.com/apps/${appName}/builds`, {
-      source_blob: {
-        url: source_blob.get_url
-      }
+      source_blob: { url: source_blob.get_url }
     }, {
       headers: {
         Authorization: `Bearer ${HEROKU_API_KEY}`,
@@ -187,20 +98,22 @@ app.post('/deploy', async (req, res) => {
       }
     });
 
-    await delay(15000);
+    await delay(15000); // اختیاری
 
-    fs.rmSync(extractPath, { recursive: true, force: true });
+    res.send(`
+      <html><body style="text-align:center;font-family:sans-serif;margin-top:50px">
+      ✅ App deployed successfully!<br><br>
+      <a href="https://${appName}.herokuapp.com" target="_blank">${appName}.herokuapp.com</a>
+      </body></html>
+    `);
 
-    // نمایش صفحه موفقیت با لینک
-    res.send(renderResultPage('✅ Deployment Success', 
-      `App deployed successfully!<br><br><a href="https://${appName}.herokuapp.com" target="_blank">${appName}.herokuapp.com</a>`));
   } catch (err) {
     console.error(err.response?.data || err.message || err);
-
-    const errorMsg = err.response?.data ? JSON.stringify(err.response.data, null, 2) : (err.message || 'Unknown error');
-
-    // نمایش صفحه خطا با پیام دقیق
-    res.send(renderResultPage('❌ Deployment Failed', `<pre>${errorMsg}</pre>`, false));
+    res.send(`
+      <html><body style="color:red;text-align:center;margin-top:50px;font-family:sans-serif">
+      ❌ Deployment failed:<br><pre>${err.message}</pre>
+      </body></html>
+    `);
   }
 });
 

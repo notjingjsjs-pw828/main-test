@@ -1,7 +1,7 @@
 {
   "name": "heroku-auto-deploy",
   "version": "1.0.0",
-  "description": "Auto deploy GitHub repo to Heroku with session injection without git command",
+  "description": "Auto deploy GitHub bot without git",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,12 +10,11 @@
     "adm-zip": "^0.5.9",
     "axios": "^1.5.0",
     "body-parser": "^1.20.2",
-    "express": "^4.18.2",
-    "form-data": "^4.0.0"
+    "express": "^4.18.2"
   },
   "engines": {
     "node": ">=14"
   },
-  "author": "YourName",
+  "author": "Nothing Tech",
   "license": "MIT"
 }
