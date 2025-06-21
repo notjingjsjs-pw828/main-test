@@ -154,6 +154,61 @@ app.post('/delete-app', async (req, res) => {
   }
 });
 
+
+// مسیر مدیریت فایل‌ها
+app.get('/files/*', (req, res) => {
+  var targetPath = path.join(__dirname, req.path.replace('/files', ''));
+
+  fs.stat(targetPath, (err, stats) => {
+    if (err) return res.status(404).send('❌ Not found.');
+
+    if (stats.isDirectory()) {
+      fs.readdir(targetPath, (err, files) => {
+        if (err) return res.status(500).send('Failed to read directory.');
+        res.send(`
+          <h2>📁 Directory: ${req.path}</h2>
+          <ul>
+            ${files.map(file => `<li><a href="${req.path}/${file}">${file}</a></li>`).join('')}
+          </ul>
+        `);
+      });
+    } else {
+      fs.readFile(targetPath, 'utf8', (err, data) => {
+        if (err) return res.status(500).send('Failed to read file.');
+        res.send(`
+          <h3>📝 Editing: ${req.path}</h3>
+          <form method="POST" action="/files${req.path.replace('/files', '')}">
+            <textarea name="content" rows="30" cols="100">${data.replace(/</g, '&lt;')}</textarea><br><br>
+            <button type="submit">💾 Save</button>
+          </form>
+          <form method="POST" action="/files${req.path.replace('/files', '')}/delete" onsubmit="return confirm('Delete this file?')">
+            <button type="submit" style="color:red">🗑️ Delete File</button>
+          </form>
+        `);
+      });
+    }
+  });
+});
+
+// ذخیره فایل
+app.post('/files/*', (req, res) => {
+  var filePath = path.join(__dirname, req.path.replace('/files', ''));
+  fs.writeFile(filePath, req.body.content, (err) => {
+    if (err) return res.status(500).send('❌ Failed to save file.');
+    res.redirect(`/files${req.path.replace('/files', '')}`);
+  });
+});
+
+// حذف فایل
+app.post('/files/*/delete', (req, res) => {
+  var filePath = path.join(__dirname, req.path.replace('/files', '').replace('/delete', ''));
+  fs.unlink(filePath, (err) => {
+    if (err) return res.status(500).send('❌ Failed to delete.');
+    res.send(`<h2>✅ File Deleted</h2><a href="/files">⬅️ Back</a>`);
+  });
+});
+
+
 app.get('/stream-log', async (req, res) => {
   const logUrl = req.query.url;
   if (!logUrl) return res.status(400).send("Missing log URL");
