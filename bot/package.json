@@ -53,7 +53,7 @@
     "yt-search": "2.11.1",
     "dotenv": "^16.4.5",
     "sequelize": "^6.37.5",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "latest",
     "@octokit/rest": "^20.0.0",
     "api-dylux": "1.8.5",
     "@mrnima/tiktok-downloader": "1.0.0",
