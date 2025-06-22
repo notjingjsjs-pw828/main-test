@@ -40,7 +40,9 @@ await axios.post(`https://api.heroku.com/apps/${generatedAppName}/builds`, {
   }
 }, { headers: herokuHeaders });
 
-res.json({ message: 'Deployment started!', appUrl: `https://${generatedAppName}.herokuapp.com` });
+
+const realAppName = createAppRes.data.name;
+res.json({ message: 'Deployment started!', appUrl: `https://${realAppName}.herokuapp.com` });
 
 } catch (error) { console.error(error.response?.data || error.message); res.status(500).json({ error: 'Deployment failed', details: error.response?.data || error.message }); } });
 
