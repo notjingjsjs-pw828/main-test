@@ -167,6 +167,53 @@ app.post('/api/login', async (req, res) => {
 });
 
 
+app.post('/api/signup', async (req, res) => {
+  const { username, password, email, phone } = req.body;
+
+  if (!username || !password || !email || !phone) {
+    return res.status(400).json({ status: false, message: 'All fields required.' });
+  }
+
+  const userPath = path.join(__dirname, 'deploy', `${username}.json`);
+
+  // اول چک کن لوکال فایل هست
+  if (fs.existsSync(userPath)) {
+    return res.status(400).json({ status: false, message: 'User already exists.' });
+  }
+
+  // بعد چک کن روی GitHub فایل وجود داره یا نه
+  try {
+    await axios.get(`https://api.github.com/repos/apis-endpoint/Number3/contents/deploy/${username}.json`, {
+      headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+    });
+    return res.status(400).json({ status: false, message: 'User already exists.' });
+  } catch (e) {
+    // اگر 404 بود یعنی وجود نداره، ادامه بده
+    if (e.response?.status !== 404) {
+      return res.status(500).json({ status: false, message: 'GitHub API error' });
+    }
+  }
+
+  // ساختار داده کاربر
+  const userData = {
+    username,
+    password,
+    email,
+    phone,
+    apps: []
+  };
+
+  // ساخت پوشه deploy لوکالی اگر نیست
+  await fsp.mkdir(path.join(__dirname, 'deploy'), { recursive: true });
+
+  // ذخیره فایل لوکال
+  await fsp.writeFile(userPath, JSON.stringify(userData, null, 2));
+
+  // push به GitHub
+  await pushToGitHub(`deploy/${username}.json`, JSON.stringify(userData, null, 2), `Signup user ${username}`);
+
+  res.json({ status: true, message: 'Signup successful!' });
+});
 
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username } = req.body;
