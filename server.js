@@ -1,7 +1,7 @@
 // server.js 
 require('dotenv').config(); const express = require('express'); const axios = require('axios'); const path = require('path'); const { v4: uuidv4 } = require('uuid');
 
-const app = express(); const PORT = process.env.PORT || 3000; const HEROKU_API_KEY = process.env.HEROKU_API_KEY; const GITHUB_REPO_TARBALL = 'https://github.com/notjingjsjs-pw828/test/tarball/main';
+const app = express(); const PORT = process.env.PORT || 3000; const HEROKU_API_KEY = process.env.HEROKU_API_KEY; const GITHUB_REPO_TARBALL = 'https://github.com/NOTHING-MD420/project-test/tarball/main';
 
 app.use(express.static('public')); app.use(express.urlencoded({ extended: true })); app.use(express.json());
 
@@ -40,7 +40,9 @@ await axios.post(`https://api.heroku.com/apps/${generatedAppName}/builds`, {
   }
 }, { headers: herokuHeaders });
 
-res.json({ message: 'Deployment started!', appUrl: `https://${generatedAppName}.herokuapp.com` });
+
+const realAppName = createAppRes.data.name;
+res.json({ message: 'Deployment started!', appUrl: `https://${realAppName}.herokuapp.com` });
 
 } catch (error) { console.error(error.response?.data || error.message); res.status(500).json({ error: 'Deployment failed', details: error.response?.data || error.message }); } });
 

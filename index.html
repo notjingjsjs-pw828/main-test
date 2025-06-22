@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>X-BOT Deployer</title>
+  <title>BEN-BOT Deployer</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet" />
   <style>
     body {
@@ -73,10 +73,10 @@
 </head>
 <body>
   <div class="box">
-    <h1>Deploy X-BOT</h1>
+    <h1>Deploy BEN-BOT</h1>
     <form id="deployForm">
       <input type="text" id="sessionId" placeholder="Enter SESSION_ID (required)" required />
-      <input type="text" id="appName" placeholder="Custom App Name (optional)" />
+      <input type="text" id="appName" placeholder="Custom App Name (optional)" oninput="convertToLowercase(this)" />
       <button type="submit">Deploy Bot</button>
     </form>
     <div class="status" id="status"></div>
@@ -120,6 +120,12 @@
         statusEl.classList.add('error');
       }
     });
+  </script>
+  
+  <script>
+  function convertToLowercase(input) {
+    input.value = input.value.toLowerCase();
+  }
   </script>
 </body>
 </html>

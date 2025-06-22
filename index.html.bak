@@ -3,218 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Heroku Auto Deploy</title>
+  <title>BEN-BOT Deployer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet" />
   <style>
     body {
-      background: linear-gradient(to right, #1f1c2c, #928dab);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #fff;
+      margin: 0; padding: 0;
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, #0f0f19, #001122);
+      color: #00ffff;
+      min-height: 100vh;
       display: flex;
-      align-items: center;
       justify-content: center;
-      height: 100vh;
-      margin: 0;
+      align-items: center;
     }
-    .container {
-      background: #2e2b4f;
-      padding: 40px;
-      border-radius: 15px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.3);
-      max-width: 400px;
+    .box {
+      background: rgba(0, 255, 255, 0.05);
+      padding: 40px 50px;
+      border-radius: 12px;
+      box-shadow: 0 0 40px #00ffff88;
+      max-width: 500px;
       width: 100%;
-      position: relative;
-    }
-    h2 {
       text-align: center;
+    }
+    h1 {
       margin-bottom: 30px;
-      font-size: 24px;
-      color: #ffde59;
+      font-size: 2.2rem;
+      text-shadow: 0 0 20px #00ffffaa;
     }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-    input[type="text"] {
+    input {
       width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
+      padding: 12px 15px;
       margin-bottom: 20px;
-      font-size: 14px;
+      border: none;
+      border-radius: 30px;
+      background: #001122;
+      color: #00ffff;
+      font-size: 1rem;
       outline: none;
-      direction: ltr;
+      box-shadow: inset 0 0 8px #00ffff88;
     }
     button {
-      width: 100%;
-      padding: 12px;
-      background-color: #ffde59;
+      padding: 12px 30px;
+      border-radius: 50px;
       border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 16px;
+      background: #00ffff;
+      color: #001122;
+      font-weight: 700;
+      font-size: 1.1rem;
       cursor: pointer;
-      color: #2e2b4f;
-      transition: background 0.3s;
-      margin-bottom: 20px;
+      box-shadow: 0 0 30px #00ffffaa;
+      transition: all 0.3s ease;
     }
-    button:disabled {
-      background-color: #999;
-      cursor: not-allowed;
+    button:hover {
+      background: #00cccc;
+      box-shadow: 0 0 40px #00cccccc;
     }
-    button:hover:enabled {
-      background-color: #ffd633;
+    .status {
+      margin-top: 20px;
+      font-size: 0.95rem;
+      min-height: 24px;
     }
-    .footer {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 12px;
-      color: #ccc;
+    .success {
+      color: #00ff99;
     }
-
-    /* Spinner Style */
-    .spinner {
-      border: 4px solid #ccc;
-      border-top: 4px solid #ffde59;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      animation: spin 1s linear infinite;
-      margin: 10px auto;
-      display: none;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    /* Logs box */
-    #logsOutput {
-      background: #1f1c2c;
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 10px;
-      font-size: 13px;
-      white-space: pre-wrap;
-      max-height: 200px;
-      overflow-y: auto;
-      display: none;
+    .error {
+      color: #ff5555;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>🚀 Deploy WhatsApp Bot to Heroku</h2>
-
-    <!-- Session Form -->
-    <form id="sessionForm">
-      <label for="sessionIdInput">Session ID *</label>
-      <input type="text" id="sessionIdInput" name="sessionId" placeholder="Enter your session ID" required />
-      <button type="button" id="saveSessionBtn">Save Session ID</button>
+  <div class="box">
+    <h1>Deploy BEN-BOT</h1>
+    <form id="deployForm">
+      <input type="text" id="sessionId" placeholder="Enter SESSION_ID (required)" required />
+      <input type="text" id="appName" placeholder="Custom App Name (optional)" />
+      <button type="submit">Deploy Bot</button>
     </form>
-
-    <!-- Deploy Form -->
-    <form id="deployForm" method="POST" action="/deploy">
-      <label for="appNameInput">Heroku App Name (optional)</label>
-      <input type="text" id="appNameInput" name="appName" placeholder="e.g. my-bot-123" />
-      <button type="submit" id="deployBtn" disabled>Deploy Now</button>
-      <div class="spinner" id="spinner"></div>
-    </form>
-    
-    <!-- Delete App Form -->
-    <div id="deleteAppSection" style="margin-top:20px">
-      <label for="deleteAppInput">Heroku App Name (for Deletion)</label>
-      <input type="text" id="deleteAppInput" placeholder="e.g. my-bot-123" />
-      <button type="button" id="deleteAppBtn" style="background-color:#f44336;color:#fff">Delete App</button>
-    </div>
-
-    <!-- Check Logs -->
-    <div id="logsSection">
-      <label for="logAppInput">Heroku App Name (for Logs)</label>
-      <input type="text" id="logAppInput" placeholder="e.g. my-bot-123" />
-      <button type="button" id="checkLogsBtn">Check Logs</button>
-      <div class="spinner" id="logSpinner"></div>
-      <div id="logsOutput"></div>
-    </div>
-
-    <div class="footer">Thank you for using our service! Powered by Nothing Tech © 2025</div>
+    <div class="status" id="status"></div>
   </div>
 
   <script>
-    const saveBtn = document.getElementById('saveSessionBtn');
-    const deployBtn = document.getElementById('deployBtn');
-    const sessionInput = document.getElementById('sessionIdInput');
-    const deployForm = document.getElementById('deployForm');
-    const spinner = document.getElementById('spinner');
+    const form = document.getElementById('deployForm');
+    const statusEl = document.getElementById('status');
 
-    const checkLogsBtn = document.getElementById('checkLogsBtn');
-    const logInput = document.getElementById('logAppInput');
-    const logSpinner = document.getElementById('logSpinner');
-    const logsOutput = document.getElementById('logsOutput');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const sessionId = document.getElementById('sessionId').value.trim();
+      const appName = document.getElementById('appName').value.trim();
+      statusEl.textContent = 'Deploying...';
+      statusEl.className = 'status';
 
-    saveBtn.addEventListener('click', async () => {
-      const sessionId = sessionInput.value.trim();
       if (!sessionId) {
-        alert('Please enter a session ID first.');
+        statusEl.textContent = 'SESSION_ID is required.';
+        statusEl.classList.add('error');
         return;
       }
 
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving...';
-
       try {
-        const response = await fetch('/save-session', {
+        const res = await fetch('/deploy', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ sessionId })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, appName })
         });
+        const data = await res.json();
 
-        if (response.ok) {
-          alert('Session ID saved successfully!');
-          deployBtn.disabled = false;
-          sessionInput.disabled = true;
-          saveBtn.textContent = 'Saved';
+        if (res.ok) {
+          statusEl.innerHTML = `✅ Deployment started: <a href="${data.appUrl}" target="_blank">${data.appUrl}</a>`;
+          statusEl.classList.add('success');
+          form.reset();
         } else {
-          alert('Failed to save session ID. Please try again.');
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Save Session ID';
+          statusEl.textContent = data.error || 'Deployment failed.';
+          statusEl.classList.add('error');
         }
-      } catch (error) {
-        alert('An error occurred. Please try again.');
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Session ID';
-      }
-    });
-
-    deployForm.addEventListener('submit', () => {
-      deployBtn.disabled = true;
-      deployBtn.textContent = 'Deploying...';
-      spinner.style.display = 'block';
-    });
-
-    checkLogsBtn.addEventListener('click', async () => {
-      const appName = logInput.value.trim();
-      if (!appName) {
-        alert('Please enter Heroku app name.');
-        return;
-      }
-
-      checkLogsBtn.disabled = true;
-      logSpinner.style.display = 'block';
-      logsOutput.style.display = 'none';
-      logsOutput.textContent = '';
-
-      try {
-        const res = await fetch(`/logs?app=${encodeURIComponent(appName)}`);
-        const text = await res.text();
-        logsOutput.style.display = 'block';
-        logsOutput.textContent = text || 'No logs found.';
       } catch (err) {
-        logsOutput.style.display = 'block';
-        logsOutput.textContent = 'Error fetching logs.';
+        statusEl.textContent = 'Error: ' + err.message;
+        statusEl.classList.add('error');
       }
-
-      checkLogsBtn.disabled = false;
-      logSpinner.style.display = 'none';
     });
   </script>
 </body>
