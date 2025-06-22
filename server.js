@@ -153,7 +153,7 @@ app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const result = await axios.get(`https://raw.githubusercontent.com/apis-endpoint/Number3/main/deploy/${username}.json`);
+    const result = await axios.get(`https://raw.githubusercontent.com/apis-endpoint/Number3/refs/heads/main/depoly/${username}.json`);
     const userData = result.data;
 
     if (userData.password !== password) {
@@ -183,7 +183,7 @@ app.post('/api/signup', async (req, res) => {
 
   // بعد چک کن روی GitHub فایل وجود داره یا نه
   try {
-    await axios.get(`https://api.github.com/repos/apis-endpoint/Number3/contents/deploy/${username}.json`, {
+    await axios.get(`https://raw.githubusercontent.com/apis-endpoint/Number3/refs/heads/main/depoly/${username}.json`, {
       headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
     });
     return res.status(400).json({ status: false, message: 'User already exists.' });
