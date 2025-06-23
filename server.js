@@ -217,11 +217,71 @@ app.post('/api/user-bots', (req, res) => {
   res.json(userBots);
 });
 
+app.post('/api/admin/add-coins', (req, res) => {
+  const { username, amount } = req.body;
+  if (!username || typeof amount !== 'number') {
+    return res.status(400).json({ status: false, message: 'Invalid input' });
+  }
+
+  const users = readJsonFile(USERS_FILE);
+  const userIndex = users.findIndex(u => u.username === username);
+  if (userIndex === -1) return res.json({ status: false, message: 'User not found' });
+
+  users[userIndex].coins += amount;
+  writeJsonFile(USERS_FILE, users);
+
+  res.json({ status: true, message: `Added ${amount} coins to ${username}` });
+});
+
+app.get('/api/admin/all-bots', (req, res) => {
+  const bots = readJsonFile(BOTS_FILE);
+  res.json(bots);
+});
+
+
+app.get('/api/admin/all-users', (req, res) => {
+  const users = readJsonFile(USERS_FILE);
+  res.json(users.map(({ password, ...rest }) => rest)); // رمز عبور حذف شود
+});
+
+
+app.get('/api/admin/files', (req, res) => {
+  const exclude = ['server.js', 'package.json', 'package-lock.json', 'node_modules'];
+  fs.readdir(__dirname, (err, files) => {
+    if (err) return res.status(500).json({ status: false, message: 'Error reading directory' });
+
+    const filtered = files.filter(f => !exclude.includes(f) && fs.statSync(path.join(__dirname, f)).isFile());
+    res.json(filtered);
+  });
+});
+
+
+app.post('/api/admin/delete-file', (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ status: false, message: 'Filename required' });
+
+  const forbidden = ['server.js', 'package.json', 'package-lock.json'];
+  const filePath = path.join(__dirname, name);
+
+  if (forbidden.includes(name)) {
+    return res.status(403).json({ status: false, message: 'Protected file. Cannot delete.' });
+  }
+
+  if (!fs.existsSync(filePath)) return res.json({ status: false, message: 'File not found' });
+
+  fs.unlink(filePath, err => {
+    if (err) return res.status(500).json({ status: false, message: 'Could not delete file' });
+    res.json({ status: true, message: 'File deleted successfully' });
+  });
+});
+
+
 // Static Routes
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'indexx.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
+app.get('/nothing-panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
 
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

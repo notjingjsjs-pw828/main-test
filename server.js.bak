@@ -198,7 +198,7 @@ app.post('/deploy', async (req, res) => {
         writeJsonFile(BOTS_FILE, updatedBots);
         console.log(`✅ Bot ${generatedAppName} status updated to Active`);
       }
-    }, 3 * 60 * 1000);
+    }, 2 * 60 * 1000);
 
     res.json({ appUrl: `https://${generatedAppName}.herokuapp.com` });
 
@@ -223,5 +223,6 @@ app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'index.htm
 app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'indexx.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
+app.get('/nothing-panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
 
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
