@@ -1,0 +1,8 @@
+{
+  "username": "ali",
+  "phone": "09123456789",
+  "email": "user1@example.com",
+  "password": "password",
+  "coins": 10,
+  "lastCoinAdd": "2025-06-22T10:00:00.000Z"
+}

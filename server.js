@@ -1,229 +1,201 @@
 require('dotenv').config();
 const express = require('express');
-const axios = require('axios');
+const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
-const fsp = require('fs/promises');
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const USERS_FILE = path.join(__dirname, 'allusers.json');
+const BOTS_FILE = path.join(__dirname, 'allbots.json');
+
 const HEROKU_API_KEY = process.env.HEROKU_API_KEY;
 const GITHUB_REPO_TARBALL = 'https://github.com/NOTHING-MD420/project-test/tarball/main';
 
-// دیکد توکن گیت‌هاب از base64
-const GITHUB_TOKEN = Buffer.from('Z2l0aHViX3BhdF8xMUJRTVJSN1kwRUVyTEJnQmlKalNVX09GeWpkYWRyZW1sRWVuY3A1ZTFkQWtLMGludDhkWEF2ZVBGSjJTRnBlc3NQNVJQNVZUSzBwQjZIQ1Jt', 'base64').toString();
-
-app.use(express.static('public'));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-app.get('/singup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'singup.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// هدرهای هروکو
 const herokuHeaders = {
   Authorization: `Bearer ${HEROKU_API_KEY}`,
   Accept: 'application/vnd.heroku+json; version=3',
   'Content-Type': 'application/json'
 };
 
-const pushToGitHub = async (filePath, content, commitMessage) => {
-  const REPO = 'Number3';
-  const OWNER = 'apis-endpoint';
+app.use(express.static('public'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-  const b64Content = Buffer.from(content).toString('base64');
-
-  let sha = null;
+function readJsonFile(filePath) {
   try {
-    const getFile = await axios.get(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
-      headers: { Authorization: `Bearer ${GITHUB_TOKEN}` }
-    });
-    sha = getFile.data.sha;
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify([], null, 2));
+      return [];
+    }
+    const data = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(data);
   } catch (err) {
-    if (err.response?.status !== 404) {
-      throw err;
-    }
+    console.error(`Error reading file ${filePath}:`, err);
+    return [];
   }
+}
 
-  await axios.put(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
-    message: commitMessage,
-    content: b64Content,
-    sha: sha || undefined
-  }, {
-    headers: {
-      Authorization: `Bearer ${GITHUB_TOKEN}`,
-      'Content-Type': 'application/json'
-    }
-  });
-};
-
-app.post('/api/signup', async (req, res) => {
-  const { username, password, email, phone } = req.body;
-
-  if (!username || !password || !email || !phone) {
-    return res.status(400).json({ status: false, message: 'All fields required.' });
-  }
-
-  const userPath = path.join(__dirname, 'deploy', `${username}.json`);
-
-  if (fs.existsSync(userPath)) {
-    return res.status(400).json({ status: false, message: 'User already exists.' });
-  }
-
+function writeJsonFile(filePath, data) {
   try {
-    await axios.get(`https://api.github.com/repos/apis-endpoint/Number3/contents/deploy/${username}.json`, {
-      headers: { Authorization: `Bearer ${GITHUB_TOKEN}` }
-    });
-    return res.status(400).json({ status: false, message: 'User already exists.' });
-  } catch (e) {
-    if (e.response?.status !== 404) {
-      return res.status(500).json({ status: false, message: 'GitHub API error' });
-    }
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error(`Error writing file ${filePath}:`, err);
   }
+}
 
-  const userData = {
+function canAddCoins(user) {
+  if (!user.lastCoinAdd) return true;
+  const last = new Date(user.lastCoinAdd);
+  return (new Date() - last) / (1000 * 60 * 60) >= 24;
+}
+
+// Auth Routes
+app.post('/api/signup', (req, res) => {
+  const { username, phone, email, password } = req.body;
+  const users = readJsonFile(USERS_FILE);
+
+  if (!username || !phone || !email || !password)
+    return res.json({ status: false, message: 'All fields required' });
+
+  if (!/^[A-Za-z0-9._\-]+$/.test(username))
+    return res.json({ status: false, message: 'Invalid username' });
+
+  if (password.length < 6)
+    return res.json({ status: false, message: 'Password too short' });
+
+  if (users.find(u => u.username === username))
+    return res.json({ status: false, message: 'Username exists' });
+
+  const newUser = {
     username,
-    password,
-    email,
     phone,
-    apps: []
+    email,
+    password,
+    coins: 10,
+    lastCoinAdd: new Date().toISOString()
   };
 
-  await fsp.mkdir(path.join(__dirname, 'deploy'), { recursive: true });
-  await fsp.writeFile(userPath, JSON.stringify(userData, null, 2));
-
-  await pushToGitHub(`deploy/${username}.json`, JSON.stringify(userData, null, 2), `Signup user ${username}`);
-
-  res.json({ status: true, message: 'Signup successful!' });
+  users.push(newUser);
+  writeJsonFile(USERS_FILE, users);
+  res.json({ status: true, message: 'Signup successful' });
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
+  const users = readJsonFile(USERS_FILE);
+  const user = users.find(u => u.username === username && u.password === password);
 
-  try {
-    const result = await axios.get(`https://raw.githubusercontent.com/apis-endpoint/Number3/main/deploy/${username}.json`);
-    const userData = result.data;
+  if (!user)
+    return res.json({ status: false, message: 'Invalid credentials' });
 
-    if (userData.password !== password) {
-      return res.status(401).json({ status: false, message: 'Wrong password' });
+  res.json({
+    status: true,
+    message: 'Login successful',
+    user: {
+      username: user.username,
+      phone: user.phone,
+      email: user.email,
+      coins: user.coins
     }
-
-    res.json({ status: true, user: userData });
-  } catch (err) {
-    res.status(404).json({ status: false, message: 'User not found' });
-  }
+  });
 });
 
-app.post('/api/updateUserApps', async (req, res) => {
-  const { username, apps } = req.body;
-  if (!username || !Array.isArray(apps)) {
-    return res.status(400).json({ status: false, message: 'Invalid data' });
-  }
-
-  try {
-    const userFilePath = path.join(__dirname, 'deploy', `${username}.json`);
-    let userJson = JSON.parse(await fsp.readFile(userFilePath, 'utf-8'));
-    userJson.apps = apps;
-
-    await fsp.writeFile(userFilePath, JSON.stringify(userJson, null, 2));
-
-    await pushToGitHub(`deploy/${username}.json`, JSON.stringify(userJson, null, 2), `Update apps list for ${username}`);
-
-    res.json({ status: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: false, message: 'Failed to update user apps' });
-  }
+app.get('/api/coins/:username', (req, res) => {
+  const username = req.params.username;
+  const users = readJsonFile(USERS_FILE);
+  const user = users.find(u => u.username === username);
+  if (!user) return res.json({ status: false, message: 'User not found' });
+  res.json({ status: true, coins: user.coins });
 });
 
-app.delete('/api/deleteapp/:appName', async (req, res) => {
-  const appName = req.params.appName;
-  const username = req.query.username;
+app.post('/api/add-coins', (req, res) => {
+  const { username } = req.body;
+  const users = readJsonFile(USERS_FILE);
+  const index = users.findIndex(u => u.username === username);
+  if (index === -1) return res.json({ status: false, message: 'User not found' });
 
-  if (!username) return res.status(400).json({ error: 'Username required' });
+  if (!canAddCoins(users[index]))
+    return res.json({ status: false, message: 'Wait 24 hours' });
 
-  const userFilePath = path.join(__dirname, 'deploy', `${username}.json`);
-
-  try {
-    let userData = JSON.parse(await fsp.readFile(userFilePath, 'utf-8'));
-
-    if (!Array.isArray(userData.apps)) userData.apps = [];
-
-    const index = userData.apps.indexOf(appName);
-    if (index === -1) {
-      return res.status(404).json({ error: 'App not found in user apps' });
-    }
-    userData.apps.splice(index, 1);
-
-    await fsp.writeFile(userFilePath, JSON.stringify(userData, null, 2));
-
-    await pushToGitHub(`deploy/${username}.json`, JSON.stringify(userData, null, 2), `Remove app ${appName} from ${username}`);
-
-    res.json({ message: 'App deleted successfully' });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete app' });
-  }
+  users[index].coins += 10;
+  users[index].lastCoinAdd = new Date().toISOString();
+  writeJsonFile(USERS_FILE, users);
+  res.json({ status: true, message: '10 coins added', coins: users[index].coins });
 });
 
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username } = req.body;
-
-  if (!sessionId || !username) {
-    return res.status(400).json({ error: 'SESSION_ID and username are required' });
-  }
+  if (!sessionId) return res.status(400).json({ error: 'Session ID required' });
 
   const generatedAppName = appName?.trim()
     ? appName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
-    : `xbot-${uuidv4().slice(0, 6)}`;
+    : `benbot-${uuidv4().slice(0, 6)}`;
 
   try {
-    const createAppRes = await axios.post('https://api.heroku.com/apps', { name: generatedAppName }, { headers: herokuHeaders });
-    const realAppName = createAppRes.data.name;
+    const bots = readJsonFile(BOTS_FILE);
 
-    await axios.patch(`https://api.heroku.com/apps/${realAppName}/config-vars`, {
+    if (bots.length >= 100) {
+      return res.status(403).json({
+        error: 'Server limit reached',
+        message: '💥 All server busy bots no allowed. Try again later.'
+      });
+    }
+
+    await axios.post('https://api.heroku.com/apps', { name: generatedAppName }, { headers: herokuHeaders });
+    await axios.patch(`https://api.heroku.com/apps/${generatedAppName}/config-vars`, {
       SESSION_ID: sessionId
     }, { headers: herokuHeaders });
-
-    await axios.post(`https://api.heroku.com/apps/${realAppName}/builds`, {
-      source_blob: {
-        url: GITHUB_REPO_TARBALL
-      }
+    await axios.post(`https://api.heroku.com/apps/${generatedAppName}/builds`, {
+      source_blob: { url: GITHUB_REPO_TARBALL }
     }, { headers: herokuHeaders });
 
-    const userFilePath = path.join(__dirname, 'deploy', `${username}.json`);
-    let userJson = JSON.parse(await fsp.readFile(userFilePath, 'utf-8'));
+    const newBot = {
+      name: generatedAppName,
+      byUser: username || 'anonymous',
+      date: new Date().toISOString(),
+      session: sessionId,
+      status: 'Deploying'
+    };
 
-    if (!Array.isArray(userJson.apps)) userJson.apps = [];
-    userJson.apps.push(realAppName);
+    bots.push(newBot);
+    writeJsonFile(BOTS_FILE, bots);
 
-    await fsp.writeFile(userFilePath, JSON.stringify(userJson, null, 2));
+    // Set status to Active after 3 minutes
+    setTimeout(() => {
+      const updatedBots = readJsonFile(BOTS_FILE);
+      const index = updatedBots.findIndex(b => b.name === generatedAppName);
+      if (index !== -1) {
+        updatedBots[index].status = 'Active';
+        writeJsonFile(BOTS_FILE, updatedBots);
+        console.log(`✅ Bot ${generatedAppName} status updated to Active`);
+      }
+    }, 3 * 60 * 1000);
 
-    await pushToGitHub(`deploy/${username}.json`, JSON.stringify(userJson, null, 2), `Add app ${realAppName} to ${username}`);
+    res.json({ appUrl: `https://${generatedAppName}.herokuapp.com` });
 
-    res.json({ message: 'Deployment started!', appUrl: `https://${realAppName}.herokuapp.com` });
-
-  } catch (error) {
-    console.error(error.response?.data || error.message);
-    res.status(500).json({ error: 'Deployment failed', details: error.response?.data || error.message });
+  } catch (err) {
+    console.error('❌ Deployment error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Deployment failed', details: err.response?.data || err.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log('Server running on port ' + PORT);
+app.post('/api/user-bots', (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ error: 'Username is required' });
+
+  const bots = readJsonFile(BOTS_FILE);
+  const userBots = bots.filter(bot => bot.byUser === username);
+  res.json(userBots);
 });
+
+// Static Routes
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'indexx.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
+
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

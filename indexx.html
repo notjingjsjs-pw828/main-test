@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BEN-BOT Deployment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      .gradient-bg {
+        background: linear-gradient(135deg, #6e8efb, #a777e3);
+      }
+      .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+      .transition-all {
+        transition: all 0.3s ease;
+      }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="gradient-bg text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-robot text-3xl"></i>
+                    <h1 class="text-2xl font-bold">BEN-BOT Deployment Bot</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span
+                      id="coinDisplay"
+                      class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full font-bold flex items-center"
+                    >
+                      <i class="fas fa-coins mr-2"></i> 0
+                    </span>
+                    <button
+                      id="logoutBtn"
+                      class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all flex items-center"
+                    >
+                      <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div id="dashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- User Info Card -->
+                <div
+                  class="bg-white rounded-xl shadow-md p-6 transition-all card-hover"
+                >
+                    <h2
+                      class="text-xl font-bold text-gray-800 mb-4 flex items-center"
+                    >
+                      <i class="fas fa-user-circle mr-2 text-blue-500"></i> User
+                      Information
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Username</p>
+                            <p id="usernameDisplay" class="font-medium text-gray-800">-</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Email</p>
+                            <p id="emailDisplay" class="font-medium text-gray-800">-</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Phone</p>
+                            <p id="phoneDisplay" class="font-medium text-gray-800">-</p>
+                        </div>
+                    </div>
+                    <button
+                      id="claimBtn"
+                      class="mt-6 w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-all flex items-center justify-center"
+                    >
+                      <i class="fas fa-gift mr-2"></i> Claim Daily Coins
+                    </button>
+                </div>
+
+                <!-- Deployment Form -->
+                <div
+                  class="bg-white rounded-xl shadow-md p-6 transition-all card-hover lg:col-span-2"
+                >
+                    <h2
+                      class="text-xl font-bold text-gray-800 mb-6 flex items-center"
+                    >
+                      <i class="fas fa-cloud-upload-alt mr-2 text-purple-500"></i>
+                      Deploy Your App
+                    </h2>
+                    <div class="space-y-6">
+                        <div>
+                            <label
+                              for="sessionIdInput"
+                              class="block text-sm font-medium text-gray-700 mb-1"
+                            >
+                              <i class="fas fa-key mr-1"></i> Session ID
+                            </label>
+                            <input
+                              type="text"
+                              id="sessionIdInput"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                              placeholder="Enter your session ID"
+                            />
+                        </div>
+                        <div>
+                            <label
+                              for="appNameInput"
+                              class="block text-sm font-medium text-gray-700 mb-1"
+                            >
+                              <i class="fas fa-tag mr-1"></i> App Name (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              id="appNameInput"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                              placeholder="My Awesome App"
+                            />
+                        </div>
+                        <div
+                          class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"
+                        >
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-blue-500"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        Deployment costs 10 coins. Make sure you have enough balance.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                          id="deployBtn"
+                          class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center"
+                        >
+                          <i class="fas fa-rocket mr-2"></i> Deploy Now
+                        </button>
+                        <div
+                          id="message"
+                          class="text-center text-sm text-gray-600"
+                        ></div>
+                    </div>
+                </div>
+
+                <!-- Recent Deployments -->
+                <div
+                  class="bg-white rounded-xl shadow-md p-6 transition-all card-hover lg:col-span-3"
+                >
+                    <h2
+                      class="text-xl font-bold text-gray-800 mb-4 flex items-center"
+                    >
+                      <i class="fas fa-history mr-2 text-orange-500"></i> Recent Deployments
+                    </h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                      scope="col"
+                                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      App Name
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Status
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      URL
+                                    </th>
+                                    <th
+                                      scope="col"
+                                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                      Date
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                  <td colspan="4" class="text-center text-gray-500 py-4">
+                                    Loading...
+                                  </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-6">
+            <div class="container mx-auto px-4">
+                <div
+                  class="flex flex-col md:flex-row justify-between items-center"
+                >
+                    <div class="mb-4 md:mb-0">
+                        <p class="text-sm">&copy; 2023 BEN-BOT Deployment Bot NOTHING-TECH</p>
+                    </div>
+                    <div class="flex space-x-6">
+                        <a
+                          href="#"
+                          class="text-gray-300 hover:text-white transition-all"
+                        >
+                          <i class="fab fa-github"></i>
+                        </a>
+                        <a
+                          href="#"
+                          class="text-gray-300 hover:text-white transition-all"
+                        >
+                          <i class="fab fa-discord"></i>
+                        </a>
+                        <a
+                          href="#"
+                          class="text-gray-300 hover:text-white transition-all"
+                        >
+                          <i class="fab fa-telegram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+      const dashboard = document.getElementById("dashboard");
+      const usernameDisplay = document.getElementById("usernameDisplay");
+      const emailDisplay = document.getElementById("emailDisplay");
+      const phoneDisplay = document.getElementById("phoneDisplay");
+      const coinDisplay = document.getElementById("coinDisplay");
+      const sessionIdInput = document.getElementById("sessionIdInput");
+      const appNameInput = document.getElementById("appNameInput");
+      const deployBtn = document.getElementById("deployBtn");
+      const claimBtn = document.getElementById("claimBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const message = document.getElementById("message");
+
+      let currentUser = JSON.parse(localStorage.getItem("user"));
+
+      async function loadUserBots() {
+        try {
+          const res = await fetch("/api/user-bots", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: currentUser.username }),
+          });
+          const bots = await res.json();
+          renderBotsTable(bots);
+        } catch (err) {
+          console.error("Error loading bots:", err.message);
+          const tbody = document.querySelector("tbody");
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-4">Failed to load deployments.</td></tr>`;
+        }
+      }
+
+      function renderBotsTable(bots) {
+  const tbody = document.querySelector("tbody");
+  tbody.innerHTML = "";
+
+  if (!bots || bots.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 py-4">❌ No deployments yet.</td></tr>`;
+    return;
+  }
+
+  bots.forEach((bot) => {
+    const tr = document.createElement("tr");
+    const statusColor = bot.status === 'Active'
+      ? 'bg-green-100 text-green-800'
+      : 'bg-yellow-100 text-yellow-800';
+
+    tr.innerHTML = `
+      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${bot.name}</td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${bot.status}</span>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-500 hover:text-blue-700">
+        <a href="https://${bot.name}.herokuapp.com" target="_blank" class="hover:underline">https://${bot.name}.herokuapp.com</a>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(bot.date).toLocaleDateString()}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+      }
+
+      if (!currentUser) {
+        window.location.href = "/login";
+      }
+
+      function initDashboard() {
+        showUserInfo();
+        loadUserBots();
+        dashboard.style.display = "grid";
+      }
+
+      function showUserInfo() {
+        usernameDisplay.textContent = currentUser.username;
+        emailDisplay.textContent = currentUser.email;
+        phoneDisplay.textContent = currentUser.phone;
+        coinDisplay.innerHTML = `<i class="fas fa-coins mr-2"></i> ${currentUser.coins}`;
+      }
+
+      logoutBtn.addEventListener("click", () => {
+        Swal.fire({
+          title: "Logout?",
+          text: "Are you sure you want to logout?",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonColor: "#3085d6",
+          cancelButtonColor: "#d33",
+          confirmButtonText: "Yes, logout!",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+          }
+        });
+      });
+
+      claimBtn.addEventListener("click", async () => {
+        claimBtn.disabled = true;
+        message.textContent = "Processing...";
+
+        try {
+          const res = await fetch("/api/add-coins", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: currentUser.username }),
+          });
+
+          const data = await res.json();
+
+          if (data.status) {
+            currentUser.coins = data.coins;
+            localStorage.setItem("user", JSON.stringify(currentUser));
+            coinDisplay.innerHTML = `<i class="fas fa-coins mr-2"></i> ${currentUser.coins}`;
+
+            Swal.fire({
+              position: "top-end",
+              icon: "success",
+              title: "10 coins added to your account!",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+          } else {
+            Swal.fire({ icon: "info", title: data.message });
+          }
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "Error", text: err.message });
+        }
+
+        message.textContent = "";
+        claimBtn.disabled = false;
+      });
+
+      deployBtn.addEventListener("click", async () => {
+        const sessionId = sessionIdInput.value.trim();
+        const appName = appNameInput.value.trim();
+
+        if (!sessionId) {
+          return Swal.fire({
+            icon: "warning",
+            title: "Oops...",
+            text: "Session ID is required!",
+            confirmButtonColor: "#3085d6",
+          });
+        }
+
+        if (currentUser.coins < 10) {
+          return Swal.fire({
+            icon: "error",
+            title: "Not enough coins!",
+            text: "You need at least 10 coins to deploy an app.",
+            confirmButtonColor: "#3085d6",
+          });
+        }
+
+        deployBtn.disabled = true;
+        message.textContent = "Deploying... Please wait.";
+
+        try {
+          const res = await fetch("/deploy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId,
+              appName,
+              username: currentUser.username,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.appUrl) {
+            currentUser.coins -= 10;
+            localStorage.setItem("user", JSON.stringify(currentUser));
+            coinDisplay.innerHTML = `<i class="fas fa-coins mr-2"></i> ${currentUser.coins}`;
+
+            Swal.fire({
+              icon: "success",
+              title: "Deployed Successfully!",
+              html: `✅ Your app <strong>${appName || "Unnamed Bot"}</strong> is now live at:<br><br>
+                     <a href="${data.appUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">${data.appUrl}</a>`,
+              confirmButtonColor: "#3085d6",
+              footer: "10 coins have been deducted from your account",
+            });
+
+            // رفرش لیست ربات ها بعد از دیپلوی
+            loadUserBots();
+
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Deployment Failed",
+              text: data.message || "Unknown error occurred during deployment",
+              confirmButtonColor: "#3085d6",
+            });
+          }
+        } catch (err) {
+          Swal.fire({
+            icon: "error",
+            title: "Deployment Error",
+            text: err.message || "Unknown error",
+            confirmButtonColor: "#3085d6",
+          });
+        }
+
+        message.textContent = "";
+        deployBtn.disabled = false;
+      });
+
+      window.addEventListener("DOMContentLoaded", initDashboard);
+    </script>
+</body>
+</html>

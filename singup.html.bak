@@ -1,331 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>NOTHING - SIGN UP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- SweetAlert -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    :root {
-      --bg: #0b071d;
-      --color: #6343da;
-      --bg02: #0d052a;
-    }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Poppins', sans-serif;
-    }
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: var(--bg);
-    }
-    form {
-      background: var(--bg02);
-      padding: 30px;
-      border-radius: 15px;
-      width: 340px;
-      box-shadow: 0 0 15px var(--color);
-      border: 2px solid var(--color);
-    }
-    h2 {
-      text-align: center;
-      color: #fff;
-      margin-bottom: 20px;
-    }
-    input[type="text"],
-    input[type="email"],
-    input[type="password"] {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: none;
-      border-bottom: 2px solid #fff;
-      background: transparent;
-      color: white;
-      font-size: 14px;
-    }
-    input:focus {
-      outline: none;
-      border-bottom-color: var(--color);
-    }
-    ::placeholder {
-      color: #bbb;
-    }
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff;
-      font-size: 14px;
-      margin: 10px 0;
-    }
-    .checkbox-container a {
-      color: var(--color);
-      text-decoration: none;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 15px;
-      background: transparent;
-      border: 2px solid var(--color);
-      color: white;
-      font-weight: bold;
-      border-radius: 30px;
-      cursor: pointer;
-      transition: 0.4s;
-    }
-    button:hover {
-      background: var(--color);
-    }
-    button:disabled {
-      background: #333;
-      border-color: #444;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign Up</title>
+
+<!-- SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  :root {
+    --bg: #0b071d;
+    --color: #6343da;
+    --bg02: #0d052a;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: var(--bg);
+  }
+  form {
+    background: var(--bg02);
+    padding: 30px;
+    border-radius: 15px;
+    width: 340px;
+    box-shadow: 0 0 15px var(--color);
+    border: 2px solid var(--color);
+  }
+  h2 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: none;
+    border-bottom: 2px solid #fff;
+    background: transparent;
+    color: white;
+    font-size: 14px;
+  }
+  input:focus {
+    outline: none;
+    border-bottom-color: var(--color);
+  }
+  ::placeholder {
+    color: #bbb;
+  }
+  .checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    font-size: 14px;
+    margin: 10px 0;
+  }
+  .checkbox-container a {
+    color: var(--color);
+    text-decoration: none;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    background: transparent;
+    border: 2px solid var(--color);
+    color: white;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  #strengthLine {
+    height: 5px;
+    background: #ddd;
+    width: 100%;
+    margin-bottom: 15px;
+    border-radius: 5px;
+  }
+</style>
 </head>
 <body>
-  <form id="signupForm">
-    <h2>Create Account</h2>
-    <input type="text" name="username" placeholder="Username" required>
-    <input type="text" name="phone" placeholder="Phone number" required>
-    <input type="email" name="email" placeholder="Email" required>
-    
-    <input type="password" id="passwordInput" placeholder="Password" required>
-    <input type="password" id="confirmPasswordInput" placeholder="Confirm Password" required>
 
-    <!-- نوار قدرت رنگی جدید -->
-    <div style="width: 100%; height: 6px; border-radius: 5px; background: #444; margin: 10px 0; overflow: hidden;">
-      <div id="strengthLine" style="height: 100%; width: 0%; background: gray; transition: width 0.3s ease;"></div>
-    </div>
-    
-    <button type="button" id="generateBtn">Generate Password</button>
+<form id="signupForm">
+  <h2>Create Account</h2>
+  <input type="text" name="username" placeholder="Username (English only)" required />
+  <input type="text" name="phone" placeholder="Phone (+123456789)" required />
+  <input type="email" name="email" placeholder="Email" required />
+  <input type="password" id="passwordInput" placeholder="Password" required minlength="6" />
+  <input type="password" id="confirmPasswordInput" placeholder="Confirm Password" required minlength="6" />
+  
+  <div id="strengthLine"></div>
 
-    <div class="checkbox-container">
-      <input type="checkbox" id="terms">
-      <label for="terms">I agree to the <a href="#">Terms of Service</a></label>
-    </div>
+  <label class="checkbox-container">
+    <input type="checkbox" id="terms" /> I agree to <a href="#">terms & conditions</a>
+  </label>
+  
+  <button type="submit" id="submitBtn" disabled>Sign Up</button>
+</form>
 
-    <button type="submit" id="submitBtn" disabled>Sign Up</button>
+<script>
+  const form = document.getElementById('signupForm');
+  const terms = document.getElementById('terms');
+  const submitBtn = document.getElementById('submitBtn');
+  const passwordInput = document.getElementById('passwordInput');
+  const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+  const strengthLine = document.getElementById('strengthLine');
 
-    <p style="text-align: center; margin-top: 15px; color: #aaa;">
-      Already have an account?
-      <a href="/login" style="color: #6343da;">Login here</a>
-    </p>
-    <p style="text-align: center; margin-top: 5px; color: #aaa;">
-      Forgot Password?
-      <a href="/forgot" style="color: #6343da;">Reset Here</a>
-    </p>
-  </form>
+  terms.addEventListener('change', () => {
+    submitBtn.disabled = !terms.checked;
+  });
 
-  <!-- فرم تایید ایمیل -->
-  <div id="verificationForm" style="display:none;">
-    <h2>Email Verification</h2>
-    <label for="verificationCode">Enter the verification code sent to your email:</label>
-    <input type="text" id="verificationCode" required>
-    <button type="submit" id="verifyBtn">Verify</button>
-  </div>
-
-  <script>
-    document.getElementById('signupForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-
-      const email = document.querySelector('[name="email"]').value;
-      const username = document.querySelector('[name="username"]').value;
-      const password = document.querySelector('[name="passwordInput"]').value;
-
-      // ارسال داده‌ها به سرور برای ثبت‌نام
-      const res = await fetch('/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
-      });
-
-      const data = await res.json();
-      
-      if (data.status) {
-        // بعد از ثبت‌نام موفقیت‌آمیز، نمایش فرم تایید کد
-        document.getElementById('signupForm').style.display = 'none'; // مخفی کردن فرم ثبت‌نام
-        document.getElementById('verificationForm').style.display = 'block'; // نمایش فرم تایید
-      } else {
-        alert(data.message);
-      }
-    });
-
-    // فرآیند تایید کد ایمیل
-    document.getElementById('verifyBtn').addEventListener('click', async function() {
-      const verificationCode = document.getElementById('verificationCode').value.trim();
-
-      const res = await fetch('/api/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verificationCode })
-      });
-
-      const data = await res.json();
-
-      if (data.status) {
-        alert('Email verified successfully!');
-        window.location.href = '/login'; // انتقال به صفحه لاگین بعد از تایید
-      } else {
-        alert('Invalid verification code.');
-      }
-    });
-  </script>
-
-
-  <script>
-    const form = document.getElementById('signupForm');
-    const terms = document.getElementById('terms');
-    const submitBtn = document.getElementById('submitBtn');
-    const generateBtn = document.getElementById('generateBtn');
-    const passwordInput = document.getElementById('passwordInput');
-    const confirmPasswordInput = document.getElementById('confirmPasswordInput');
-    const strengthBar = document.getElementById('strengthBar');
-
-    // دکمه فعال‌سازی با قوانین
-    terms.addEventListener('change', () => {
-      submitBtn.disabled = !terms.checked;
-    });
-
-    // قدرت رمز عبور
-    passwordInput.addEventListener('input', () => {
-      const pwd = passwordInput.value;
-      let strength = 0;
-      if (pwd.length >= 6) strength++;
-      if (/[A-Z]/.test(pwd)) strength++;
-      if (/[0-9]/.test(pwd)) strength++;
-      if (/[@#$%^&*!]/.test(pwd)) strength++;
-      strengthBar.value = strength;
-    });
-
-    // ساخت رمز تصادفی
-    generateBtn.addEventListener('click', () => {
-  const generated = generatePassword(12);
-
-  Swal.fire({
-    title: 'Use this password?',
-    input: 'text',
-    inputValue: generated,
-    showCancelButton: true,
-    confirmButtonText: 'Done',
-    cancelButtonText: 'Copy',
-    didOpen: () => {
-      passwordInput.value = generated;
-      confirmPasswordInput.value = generated;
-      updateStrengthVisual(generated, generated); // فوراً رنگ سبز بزن
+  function updateStrengthVisual(pwd, confirmPwd) {
+    if (!pwd || pwd !== confirmPwd) {
+      strengthLine.style.width = '100%';
+      strengthLine.style.background = '#ff3b3b'; // red
+      return;
     }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      passwordInput.value = result.value;
-      confirmPasswordInput.value = result.value;
-      updateStrengthVisual(result.value, result.value); // فوراً رنگ سبز بزن
-    } else if (result.dismiss === Swal.DismissReason.cancel) {
-      passwordInput.value = generated;
-      confirmPasswordInput.value = generated;
-      updateStrengthVisual(generated, generated); // فوراً رنگ سبز بزن
-      navigator.clipboard.writeText(generated);
-      Swal.fire('Copied!', 'Password copied and used in both fields.', 'success');
+
+    const length = pwd.length;
+
+    if (length < 7) {
+      strengthLine.style.width = '35%';
+      strengthLine.style.background = '#ffd700'; // yellow
+    } else if (length < 10) {
+      strengthLine.style.width = '60%';
+      strengthLine.style.background = '#ffc107'; // orange
+    } else if (length < 12) {
+      strengthLine.style.width = '85%';
+      strengthLine.style.background = '#00aaff'; // blue
+    } else {
+      strengthLine.style.width = '100%';
+      strengthLine.style.background = '#00e676'; // green
+    }
+  }
+
+  passwordInput.addEventListener('input', () => {
+    updateStrengthVisual(passwordInput.value, confirmPasswordInput.value);
+  });
+
+  confirmPasswordInput.addEventListener('input', () => {
+    updateStrengthVisual(passwordInput.value, confirmPasswordInput.value);
+  });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const username = form.username.value.trim();
+    const phone = form.phone.value.trim();
+    const email = form.email.value.trim();
+    const password = passwordInput.value.trim();
+    const confirm = confirmPasswordInput.value.trim();
+
+    const engOnly = /^[A-Za-z0-9@._\-]+$/;
+    const phoneRegex = /^\+?[0-9]{7,15}$/;
+
+    if (!engOnly.test(username)) {
+      return Swal.fire({ icon: 'error', text: 'Username must be in English only.' });
+    }
+    if (password.length < 6 || !engOnly.test(password)) {
+      return Swal.fire({ icon: 'error', text: 'Password must be at least 6 characters and English only.' });
+    }
+    if (password !== confirm) {
+      return Swal.fire({ icon: 'error', text: 'Passwords do not match.' });
+    }
+    if (!phoneRegex.test(phone)) {
+      return Swal.fire({ icon: 'error', text: 'Invalid phone number.' });
+    }
+
+    const res = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, phone, email, password })
+    });
+
+    const data = await res.json();
+
+    if (data.status) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Account Created!',
+        text: 'Redirecting to login...',
+        timer: 3000,
+        showConfirmButton: false
+      });
+      setTimeout(() => window.location.href = '/login', 3000);
+    } else {
+      Swal.fire({ icon: 'error', text: data.message || 'Something went wrong.' });
     }
   });
-});
+</script>
 
-    function generatePassword(length) {
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      let result = '';
-      for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
-    }
-
-    // هندل ثبت‌نام
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const username = form.username.value.trim();
-      const phone = form.phone.value.trim();
-      const email = form.email.value.trim();
-      const password = passwordInput.value.trim();
-      const confirm = confirmPasswordInput.value.trim();
-
-      const engOnly = /^[A-Za-z0-9@._\-]+$/;
-      const phoneRegex = /^\+?[0-9]{7,15}$/;
-
-      if (!engOnly.test(username)) {
-        return Swal.fire({ icon: 'error', text: 'Username must be in English only.' });
-      }
-      if (password.length < 6 || !engOnly.test(password)) {
-        return Swal.fire({ icon: 'error', text: 'Password must be at least 6 characters and English only.' });
-      }
-      if (password !== confirm) {
-        return Swal.fire({ icon: 'error', text: 'Passwords do not match.' });
-      }
-      if (!phoneRegex.test(phone)) {
-        return Swal.fire({ icon: 'error', text: 'Invalid phone number.' });
-      }
-
-      const res = await fetch('/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, phone, email, password })
-      });
-
-      const data = await res.json();
-
-      if (data.status) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Account Created!',
-          text: 'Redirecting to login...',
-          timer: 3000,
-          showConfirmButton: false
-        });
-        setTimeout(() => window.location.href = '/login', 3000);
-      } else {
-        Swal.fire({ icon: 'error', text: data.message || 'Something went wrong.' });
-      }
-    });
-    
-    const strengthLine = document.getElementById('strengthLine');
-
-function updateStrengthVisual(pwd, confirmPwd) {
-  if (!pwd || pwd !== confirmPwd) {
-    strengthLine.style.width = '100%';
-    strengthLine.style.background = '#ff3b3b'; // سرخ واضح
-    return;
-  }
-
-  const length = pwd.length;
-
-  if (length < 7) {
-    strengthLine.style.width = '35%';
-    strengthLine.style.background = '#ffd700'; // زرد طلایی روشن و واضح
-  } else if (length >= 7 && length < 10) {
-    strengthLine.style.width = '60%';
-    strengthLine.style.background = '#ffc107'; // زرد نارنجی خوش‌رنگ
-  } else if (length >= 10 && length < 12) {
-    strengthLine.style.width = '85%';
-    strengthLine.style.background = '#00aaff'; // آبی تیز
-  } else {
-    strengthLine.style.width = '100%';
-    strengthLine.style.background = '#00e676'; // سبز روشن زیبا
-  }
-}
-
-passwordInput.addEventListener('input', () => {
-  updateStrengthVisual(passwordInput.value, confirmPasswordInput.value);
-});
-
-confirmPasswordInput.addEventListener('input', () => {
-  updateStrengthVisual(passwordInput.value, confirmPasswordInput.value);
-});
-
-  </script>
 </body>
+</html>

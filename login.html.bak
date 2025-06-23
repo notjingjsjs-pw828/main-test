@@ -40,7 +40,7 @@
   <button type="submit">Login</button>
   <p style="text-align: center; margin-top: 15px; color: #aaa;">
     Don't have an Account?
-    <a href="/signup" class="register-link" style="color: #6343da;">Register Here</a>
+    <a href="/singup" class="register-link" style="color: #6343da;">Register Here</a>
   </p>
 </form>
 
@@ -68,7 +68,7 @@
       // ذخیره اطلاعات در مرورگر
       localStorage.setItem('user', JSON.stringify(data.user));
       Swal.fire({ icon: 'success', title: 'Login successful!', timer: 1500, showConfirmButton: false });
-      setTimeout(() => window.location.href = '/docs', 1500);
+      setTimeout(() => window.location.href = '/index.html', 1500);
     } else {
       Swal.fire({ icon: 'error', text: data.message || 'Invalid credentials' });
     }
