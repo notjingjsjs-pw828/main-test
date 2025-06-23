@@ -53,6 +53,7 @@ function canAddCoins(user) {
 }
 
 // Auth Routes
+// زمانی که کاربر ثبت‌نام می‌کند
 app.post('/api/signup', (req, res) => {
   const { username, phone, email, password } = req.body;
   const users = readJsonFile(USERS_FILE);
@@ -69,18 +70,52 @@ app.post('/api/signup', (req, res) => {
   if (users.find(u => u.username === username))
     return res.json({ status: false, message: 'Username exists' });
 
+  // کاربر جدید با سکه صفر
   const newUser = {
     username,
     phone,
     email,
     password,
-    coins: 10,
-    lastCoinAdd: new Date().toISOString()
+    coins: 0, // سکه صفر
+    lastCoinAdd: null // زمان دریافت اولین سکه
   };
 
   users.push(newUser);
   writeJsonFile(USERS_FILE, users);
   res.json({ status: true, message: 'Signup successful' });
+});
+
+// اضافه کردن سکه
+app.post('/api/add-coins', (req, res) => {
+  const { username } = req.body;
+  const users = readJsonFile(USERS_FILE);
+  const index = users.findIndex(u => u.username === username);
+  if (index === -1) return res.json({ status: false, message: 'User not found' });
+
+  const user = users[index];
+
+  // اگر زمان دریافت اولین سکه وجود ندارد، به او 10 سکه بدهیم
+  if (!user.lastCoinAdd) {
+    user.coins = 10;
+    user.lastCoinAdd = new Date().toISOString();
+    writeJsonFile(USERS_FILE, users);
+    return res.json({ status: true, message: '10 coins added to your account!', coins: user.coins });
+  }
+
+  // اگر کمتر از 24 ساعت گذشته باشد، به کاربر زمان باقی‌مانده را نمایش دهیم
+  const lastAddTime = new Date(user.lastCoinAdd);
+  const timeDiff = new Date() - lastAddTime;
+  const hoursRemaining = Math.max(24 - timeDiff / (1000 * 60 * 60), 0); // ساعت باقی‌مانده
+
+  if (hoursRemaining > 0) {
+    return res.json({ status: false, message: `Wait ${Math.ceil(hoursRemaining)} hours` });
+  }
+
+  // اگر 24 ساعت گذشته باشد، 10 سکه دیگر به کاربر داده می‌شود
+  user.coins += 10;
+  user.lastCoinAdd = new Date().toISOString();
+  writeJsonFile(USERS_FILE, users);
+  res.json({ status: true, message: '10 coins added', coins: user.coins });
 });
 
 app.post('/api/login', (req, res) => {
@@ -137,20 +172,7 @@ app.get('/api/coins/:username', (req, res) => {
   res.json({ status: true, coins: user.coins });
 });
 
-app.post('/api/add-coins', (req, res) => {
-  const { username } = req.body;
-  const users = readJsonFile(USERS_FILE);
-  const index = users.findIndex(u => u.username === username);
-  if (index === -1) return res.json({ status: false, message: 'User not found' });
 
-  if (!canAddCoins(users[index]))
-    return res.json({ status: false, message: 'Wait 24 hours' });
-
-  users[index].coins += 10;
-  users[index].lastCoinAdd = new Date().toISOString();
-  writeJsonFile(USERS_FILE, users);
-  res.json({ status: true, message: '10 coins added', coins: users[index].coins });
-});
 
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username } = req.body;
