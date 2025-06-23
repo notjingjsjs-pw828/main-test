@@ -106,9 +106,12 @@ app.post('/api/add-coins', (req, res) => {
   const lastAddTime = new Date(user.lastCoinAdd);
   const timeDiff = new Date() - lastAddTime;
   const hoursRemaining = Math.max(24 - timeDiff / (1000 * 60 * 60), 0); // ساعت باقی‌مانده
+  const minutesRemaining = Math.max(Math.floor((24 * 60) - timeDiff / (1000 * 60)), 0); // دقیقه باقی‌مانده
+  const secondsRemaining = Math.max(Math.floor((24 * 3600) - timeDiff / 1000), 0); // ثانیه باقی‌مانده
 
   if (hoursRemaining > 0) {
-    return res.json({ status: false, message: `Wait ${Math.ceil(hoursRemaining)} hours` });
+    // نمایش ساعت‌ها، دقیقه‌ها و ثانیه‌ها
+    return res.json({ status: false, message: `Wait: ${Math.floor(hoursRemaining)}h ${Math.floor(minutesRemaining % 60)}m ${Math.floor(secondsRemaining % 60)}s` });
   }
 
   // اگر 24 ساعت گذشته باشد، 10 سکه دیگر به کاربر داده می‌شود

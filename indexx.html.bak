@@ -373,39 +373,43 @@
       });
 
       claimBtn.addEventListener("click", async () => {
-        claimBtn.disabled = true;
-        message.textContent = "Processing...";
+    claimBtn.disabled = true;
+    message.textContent = "Processing...";
 
-        try {
-          const res = await fetch("/api/add-coins", {
+    try {
+        const res = await fetch("/api/add-coins", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username: currentUser.username }),
-          });
+        });
 
-          const data = await res.json();
+        const data = await res.json();
 
-          if (data.status) {
+        if (data.status) {
             currentUser.coins = data.coins;
             localStorage.setItem("user", JSON.stringify(currentUser));
             coinDisplay.innerHTML = `<i class="fas fa-coins mr-2"></i> ${currentUser.coins}`;
 
             Swal.fire({
-              position: "top-end",
-              icon: "success",
-              title: "10 coins added to your account!",
-              showConfirmButton: false,
-              timer: 1500,
+                position: "top-end",
+                icon: "success",
+                title: "10 coins added to your account!",
+                showConfirmButton: false,
+                timer: 1500,
             });
-          } else {
-            Swal.fire({ icon: "info", title: data.message });
-          }
-        } catch (err) {
-          Swal.fire({ icon: "error", title: "Error", text: err.message });
+        } else {
+            // نمایش زمان باقی‌مانده
+            Swal.fire({
+                icon: "info",
+                title: data.message, // اینجا پیام "Wait X hours" نشان داده می‌شود
+            });
         }
+    } catch (err) {
+        Swal.fire({ icon: "error", title: "Error", text: err.message });
+    }
 
-        message.textContent = "";
-        claimBtn.disabled = false;
+    message.textContent = "";
+    claimBtn.disabled = false;
       });
 
       deployBtn.addEventListener("click", async () => {

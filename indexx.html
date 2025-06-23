@@ -393,15 +393,15 @@
             Swal.fire({
                 position: "top-end",
                 icon: "success",
-                title: "10 coins added to your account!",
+                title: data.message, // نمایش پیام "10 coins added to your account!"
                 showConfirmButton: false,
                 timer: 1500,
             });
         } else {
-            // نمایش زمان باقی‌مانده
+            // اگر سکه نمی‌تواند اضافه شود، پیغام زمان باقی‌مانده را نمایش می‌دهیم
             Swal.fire({
                 icon: "info",
-                title: data.message, // اینجا پیام "Wait X hours" نشان داده می‌شود
+                title: data.message, // پیغام "Wait: xh xm xs"
             });
         }
     } catch (err) {
