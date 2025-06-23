@@ -335,6 +335,22 @@ app.get('/api/admin/files', (req, res) => {
 });
 
 
+app.post('/api/redeploy', async (req, res) => {
+  const { appName, repoUrl } = req.body;
+  if (!appName || !repoUrl) return res.status(400).json({ status: false, message: 'Missing info' });
+
+  try {
+    await axios.post(`https://api.heroku.com/apps/${appName}/builds`, {
+      source_blob: { url: repoUrl }
+    }, { headers: herokuHeaders });
+
+    res.json({ status: true, message: 'Redeployed successfully', url: `https://${appName}.herokuapp.com` });
+  } catch (err) {
+    console.error("Redeploy error:", err.response?.data || err.message);
+    res.status(500).json({ status: false, message: 'Redeploy failed', error: err.message });
+  }
+});
+
 app.post('/api/admin/delete-file', (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ status: false, message: 'Filename required' });

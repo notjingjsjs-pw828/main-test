@@ -304,26 +304,33 @@
   async function redeployBot(appName, repoUrl) {
   const confirm = await Swal.fire({
     title: `Redeploy ${appName}?`,
-    text: "It will rebuild and restart the app.",
+    text: "It will rebuild the app on Heroku.",
     icon: "question",
     showCancelButton: true,
     confirmButtonText: "Yes, redeploy!"
   });
+
   if (!confirm.isConfirmed) return;
 
   message.textContent = "Redeploying...";
+
   try {
     const res = await fetch('/api/redeploy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ appName, repoUrl })
     });
+
     const data = await res.json();
-    Swal.fire(data.status ? "Redeployed!" : "Error", data.message, data.status ? "success" : "error");
-    if (data.status) loadUserBots();
+    if (data.status) {
+      Swal.fire("✅ Redeployed", `App is live at:<br><a href="${data.appUrl}" target="_blank">${data.appUrl}</a>`, "success");
+    } else {
+      Swal.fire("❌ Error", data.message, "error");
+    }
   } catch (err) {
-    Swal.fire("Error", err.message, "error");
+    Swal.fire("Error", err.message || "Redeploy failed", "error");
   }
+
   message.textContent = "";
   }
   

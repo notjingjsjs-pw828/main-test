@@ -337,17 +337,27 @@ app.get('/api/admin/files', (req, res) => {
 
 app.post('/api/redeploy', async (req, res) => {
   const { appName, repoUrl } = req.body;
-  if (!appName || !repoUrl) return res.status(400).json({ status: false, message: 'Missing info' });
+
+  if (!appName || !repoUrl) {
+    return res.status(400).json({ status: false, message: "Missing app name or repo URL" });
+  }
 
   try {
     await axios.post(`https://api.heroku.com/apps/${appName}/builds`, {
       source_blob: { url: repoUrl }
     }, { headers: herokuHeaders });
 
-    res.json({ status: true, message: 'Redeployed successfully', url: `https://${appName}.herokuapp.com` });
+    res.json({
+      status: true,
+      message: `Redeploy started for ${appName}`,
+      appUrl: `https://${appName}.herokuapp.com`
+    });
   } catch (err) {
     console.error("Redeploy error:", err.response?.data || err.message);
-    res.status(500).json({ status: false, message: 'Redeploy failed', error: err.message });
+    res.status(500).json({
+      status: false,
+      message: err.response?.data?.message || "Redeploy failed"
+    });
   }
 });
 
