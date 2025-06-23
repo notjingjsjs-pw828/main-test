@@ -206,9 +206,31 @@ app.get('/api/heroku-logs/:appName', async (req, res) => {
 });
 
 
+app.post('/api/add-bot-repo', (req, res) => {
+  const { name, repoUrl } = req.body;
+  if (!name || !repoUrl) return res.status(400).json({ status: false, message: 'Name and Repo URL are required' });
+
+  const bots = readJsonFile('botrepos.json');
+  if (bots.find(b => b.name === name)) {
+    return res.json({ status: false, message: 'Bot name already exists' });
+  }
+
+  bots.push({ name, repoUrl });
+  writeJsonFile('botrepos.json', bots);
+
+  res.json({ status: true, message: 'Bot added successfully' });
+});
+
+app.get('/api/bot-repos', (req, res) => {
+  const bots = readJsonFile('botrepos.json');
+  res.json(bots);
+});
+
 app.post('/deploy', async (req, res) => {
-  const { sessionId, appName, username } = req.body;
-  if (!sessionId) return res.status(400).json({ error: 'Session ID required' });
+  const { sessionId, appName, username, repoUrl } = req.body;
+
+  if (!sessionId || !repoUrl)
+    return res.status(400).json({ error: 'Session ID and repoUrl are required' });
 
   const generatedAppName = appName?.trim()
     ? appName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
@@ -225,11 +247,13 @@ app.post('/deploy', async (req, res) => {
     }
 
     await axios.post('https://api.heroku.com/apps', { name: generatedAppName }, { headers: herokuHeaders });
+
     await axios.patch(`https://api.heroku.com/apps/${generatedAppName}/config-vars`, {
       SESSION_ID: sessionId
     }, { headers: herokuHeaders });
+
     await axios.post(`https://api.heroku.com/apps/${generatedAppName}/builds`, {
-      source_blob: { url: GITHUB_REPO_TARBALL }
+      source_blob: { url: repoUrl }
     }, { headers: herokuHeaders });
 
     const newBot = {
@@ -237,13 +261,14 @@ app.post('/deploy', async (req, res) => {
       byUser: username || 'anonymous',
       date: new Date().toISOString(),
       session: sessionId,
-      status: 'Deploying'
+      status: 'Deploying',
+      repo: repoUrl
     };
 
     bots.push(newBot);
     writeJsonFile(BOTS_FILE, bots);
 
-    // Set status to Active after 3 minutes
+    // وضعیت بعد از ۲ دقیقه Active شود
     setTimeout(() => {
       const updatedBots = readJsonFile(BOTS_FILE);
       const index = updatedBots.findIndex(b => b.name === generatedAppName);
@@ -337,5 +362,6 @@ app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'indexx.html'))
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
 app.get('/nothing-panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
+app.get('/addbots', (req, res) => res.sendFile(path.join(__dirname, 'addbots.html')));
 
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

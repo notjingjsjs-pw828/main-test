@@ -96,6 +96,17 @@
                       Deploy Your App
                     </h2>
                     <div class="space-y-6">
+                       <div>
+                         <label for="repoSelect" class="block text-sm font-medium text-gray-700 mb-1">
+                           <i class="fas fa-code-branch mr-1"></i> Select Bot Repository
+                         </label>
+                         <select
+                           id="repoSelect"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                         >
+                           <option disabled selected>Loading repos...</option>
+                         </select>
+                        </div>
                         <div>
                             <label
                               for="sessionIdInput"
@@ -268,6 +279,44 @@
         }
       }
       
+      async function viewLogs(appName) {
+  try {
+    const res = await fetch(`/api/heroku-logs/${appName}`);
+    const data = await res.json();
+
+    if (!data.status) {
+      return Swal.fire("Error", data.message || "Failed to fetch logs", "error");
+    }
+
+    Swal.fire({
+      title: `Logs - ${appName}`,
+      html: `<pre style="text-align:left;white-space:pre-wrap;max-height:400px;overflow:auto;font-size:0.75rem;">${data.logs}</pre>`,
+      width: 800,
+      customClass: { popup: 'text-left' },
+      confirmButtonText: "Close"
+    });
+
+  } catch (err) {
+    Swal.fire("Error", err.message || "Could not fetch logs", "error");
+  }
+      }
+      
+      async function loadBotRepos() {
+  const res = await fetch('/api/bot-repos');
+  const repos = await res.json();
+  const select = document.getElementById('repoSelect');
+  repos.forEach(repo => {
+    const opt = document.createElement('option');
+    opt.value = repo.repoUrl;
+    opt.innerText = repo.name;
+    select.appendChild(opt);
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  initDashboard();
+  loadBotRepos();
+      });
       async function deleteBot(appName) {
   const confirm = await Swal.fire({
     title: `Delete ${appName}?`,

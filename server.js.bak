@@ -176,6 +176,55 @@ app.get('/api/coins/:username', (req, res) => {
 });
 
 
+app.get('/api/heroku-logs/:appName', async (req, res) => {
+  const appName = req.params.appName;
+  try {
+    const result = await axios({
+      method: 'GET',
+      url: `https://api.heroku.com/apps/${appName}/log-sessions`,
+      headers: {
+        Authorization: `Bearer ${process.env.HEROKU_API_KEY}`,
+        Accept: 'application/vnd.heroku+json; version=3',
+        'Content-Type': 'application/json',
+      },
+      data: {
+        dyno: 'web',
+        lines: 100,
+        source: 'app',
+        tail: false
+      }
+    });
+
+    const { logplex_url } = result.data;
+
+    const logsResponse = await axios.get(logplex_url);
+    res.json({ status: true, logs: logsResponse.data });
+  } catch (err) {
+    console.error('Log fetch error:', err.message || err);
+    res.status(500).json({ status: false, message: 'Failed to fetch logs' });
+  }
+});
+
+
+app.post('/api/add-bot-repo', (req, res) => {
+  const { name, repoUrl } = req.body;
+  if (!name || !repoUrl) return res.status(400).json({ status: false, message: 'Name and Repo URL are required' });
+
+  const bots = readJsonFile('botrepos.json');
+  if (bots.find(b => b.name === name)) {
+    return res.json({ status: false, message: 'Bot name already exists' });
+  }
+
+  bots.push({ name, repoUrl });
+  writeJsonFile('botrepos.json', bots);
+
+  res.json({ status: true, message: 'Bot added successfully' });
+});
+
+app.get('/api/bot-repos', (req, res) => {
+  const bots = readJsonFile('botrepos.json');
+  res.json(bots);
+});
 
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username } = req.body;
@@ -308,5 +357,6 @@ app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'indexx.html'))
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/signup', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
 app.get('/nothing-panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
+app.get('/addbots', (req, res) => res.sendFile(path.join(__dirname, 'addbots.html')));
 
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
