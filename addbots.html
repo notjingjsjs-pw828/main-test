@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Add Bot Repo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-xl mx-auto bg-white shadow-lg p-6 rounded-lg">
+    <h2 class="text-2xl font-bold mb-4">Add New Bot Repository</h2>
+    <input id="botName" type="text" placeholder="Bot Name" class="w-full border p-2 mb-2 rounded" />
+    <input id="botRepo" type="text" placeholder="GitHub Repo URL" class="w-full border p-2 mb-4 rounded" />
+    <button onclick="addBot()" class="bg-blue-600 text-white px-4 py-2 rounded">Add Bot</button>
+    <div id="result" class="mt-4 text-sm"></div>
+  </div>
+ 
+  <script>
+    async function addBot() {
+      const name = document.getElementById('botName').value.trim();
+      const repoUrl = document.getElementById('botRepo').value.trim();
+
+      const res = await fetch('/api/add-bot-repo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, repoUrl })
+      });
+
+      const data = await res.json();
+      document.getElementById('result').innerText = data.message;
+    }
+  </script>
+</body>
+</html>
