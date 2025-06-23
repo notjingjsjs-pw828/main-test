@@ -329,6 +329,9 @@
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-3">
         ${new Date(bot.date).toLocaleDateString()}
+        <button onclick="viewLogs('${bot.name}')" class="text-blue-500 hover:text-blue-700 text-xs bg-blue-100 px-2 py-1 rounded">
+          Logs
+        </button>
         <button onclick="deleteBot('${bot.name}')" class="text-red-500 hover:text-red-700 text-xs bg-red-100 px-2 py-1 rounded">
           Delete
         </button>
@@ -393,15 +396,15 @@
             Swal.fire({
                 position: "top-end",
                 icon: "success",
-                title: "10 coins added to your account!",
+                title: data.message, // نمایش پیام "10 coins added to your account!"
                 showConfirmButton: false,
                 timer: 1500,
             });
         } else {
-            // نمایش زمان باقی‌مانده
+            // اگر سکه نمی‌تواند اضافه شود، پیغام زمان باقی‌مانده را نمایش می‌دهیم
             Swal.fire({
                 icon: "info",
-                title: data.message, // اینجا پیام "Wait X hours" نشان داده می‌شود
+                title: data.message, // پیغام "Wait: xh xm xs"
             });
         }
     } catch (err) {

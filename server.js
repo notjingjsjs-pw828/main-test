@@ -176,6 +176,35 @@ app.get('/api/coins/:username', (req, res) => {
 });
 
 
+app.get('/api/heroku-logs/:appName', async (req, res) => {
+  const appName = req.params.appName;
+  try {
+    const result = await axios({
+      method: 'GET',
+      url: `https://api.heroku.com/apps/${appName}/log-sessions`,
+      headers: {
+        Authorization: `Bearer ${process.env.HEROKU_API_KEY}`,
+        Accept: 'application/vnd.heroku+json; version=3',
+        'Content-Type': 'application/json',
+      },
+      data: {
+        dyno: 'web',
+        lines: 100,
+        source: 'app',
+        tail: false
+      }
+    });
+
+    const { logplex_url } = result.data;
+
+    const logsResponse = await axios.get(logplex_url);
+    res.json({ status: true, logs: logsResponse.data });
+  } catch (err) {
+    console.error('Log fetch error:', err.message || err);
+    res.status(500).json({ status: false, message: 'Failed to fetch logs' });
+  }
+});
+
 
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username } = req.body;

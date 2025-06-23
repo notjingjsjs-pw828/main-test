@@ -268,6 +268,28 @@
         }
       }
       
+      async function viewLogs(appName) {
+  try {
+    const res = await fetch(`/api/heroku-logs/${appName}`);
+    const data = await res.json();
+
+    if (!data.status) {
+      return Swal.fire("Error", data.message || "Failed to fetch logs", "error");
+    }
+
+    Swal.fire({
+      title: `Logs - ${appName}`,
+      html: `<pre style="text-align:left;white-space:pre-wrap;max-height:400px;overflow:auto;font-size:0.75rem;">${data.logs}</pre>`,
+      width: 800,
+      customClass: { popup: 'text-left' },
+      confirmButtonText: "Close"
+    });
+
+  } catch (err) {
+    Swal.fire("Error", err.message || "Could not fetch logs", "error");
+  }
+      }
+
       async function deleteBot(appName) {
   const confirm = await Swal.fire({
     title: `Delete ${appName}?`,
@@ -329,6 +351,9 @@
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-3">
         ${new Date(bot.date).toLocaleDateString()}
+        <button onclick="viewLogs('${bot.name}')" class="text-blue-500 hover:text-blue-700 text-xs bg-blue-100 px-2 py-1 rounded">
+          Logs
+        </button>
         <button onclick="deleteBot('${bot.name}')" class="text-red-500 hover:text-red-700 text-xs bg-red-100 px-2 py-1 rounded">
           Delete
         </button>
