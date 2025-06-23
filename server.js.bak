@@ -205,6 +205,36 @@ app.get('/api/heroku-logs/:appName', async (req, res) => {
   }
 });
 
+const https = require('https');
+
+app.get('/stream-log', (req, res) => {
+  const logUrl = decodeURIComponent(req.query.url);
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  https.get(logUrl, (stream) => {
+    stream.on('data', chunk => {
+      res.write(`data: ${chunk.toString()}\n\n`);
+    });
+
+    stream.on('end', () => {
+      res.write('event: end\ndata: Log stream ended\n\n');
+      res.end();
+    });
+
+    stream.on('error', err => {
+      console.error("🔴 Stream error:", err.message);
+      res.write(`event: error\ndata: ${err.message}\n\n`);
+      res.end();
+    });
+  }).on('error', err => {
+    console.error("🔴 HTTPS error:", err.message);
+    res.write(`event: error\ndata: ${err.message}\n\n`);
+    res.end();
+  });
+});
 
 app.post('/api/add-bot-repo', (req, res) => {
   const { name, repoUrl } = req.body;
