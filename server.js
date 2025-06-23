@@ -103,6 +103,32 @@ app.post('/api/login', (req, res) => {
   });
 });
 
+app.post('/api/delete-bot', async (req, res) => {
+  const { appName, username } = req.body;
+
+  if (!appName || !username) {
+    return res.status(400).json({ status: false, message: 'Missing appName or username' });
+  }
+
+  try {
+    // حذف از Heroku
+    await axios.delete(`https://api.heroku.com/apps/${appName}`, {
+      headers: herokuHeaders
+    });
+
+    // حذف از allbots.json
+    const bots = readJsonFile(BOTS_FILE);
+    const updatedBots = bots.filter(b => !(b.name === appName && b.byUser === username));
+    writeJsonFile(BOTS_FILE, updatedBots);
+
+    res.json({ status: true, message: 'App deleted successfully' });
+  } catch (err) {
+    console.error('❌ Delete Error:', err.response?.data || err.message);
+    res.status(500).json({ status: false, message: 'Delete failed', error: err.message });
+  }
+});
+
+
 app.get('/api/coins/:username', (req, res) => {
   const username = req.params.username;
   const users = readJsonFile(USERS_FILE);
@@ -172,7 +198,7 @@ app.post('/deploy', async (req, res) => {
         writeJsonFile(BOTS_FILE, updatedBots);
         console.log(`✅ Bot ${generatedAppName} status updated to Active`);
       }
-    }, 3 * 60 * 1000);
+    }, 2 * 60 * 1000);
 
     res.json({ appUrl: `https://${generatedAppName}.herokuapp.com` });
 

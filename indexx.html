@@ -267,7 +267,43 @@
           tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-4">Failed to load deployments.</td></tr>`;
         }
       }
+      
+      async function deleteBot(appName) {
+  const confirm = await Swal.fire({
+    title: `Delete ${appName}?`,
+    text: "Are you sure you want to delete this app? This action cannot be undone!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!"
+  });
 
+  if (!confirm.isConfirmed) return;
+
+  try {
+    const res = await fetch("/api/delete-bot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        appName,
+        username: currentUser.username
+      })
+    });
+
+    const result = await res.json();
+
+    if (result.status) {
+      Swal.fire("Deleted!", `${appName} has been deleted.`, "success");
+      loadUserBots(); // Refresh table
+    } else {
+      Swal.fire("Error", result.message || "Failed to delete bot", "error");
+    }
+  } catch (err) {
+    Swal.fire("Error", err.message || "Unexpected error", "error");
+  }
+      }
+      
       function renderBotsTable(bots) {
   const tbody = document.querySelector("tbody");
   tbody.innerHTML = "";
@@ -289,9 +325,14 @@
         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${bot.status}</span>
       </td>
       <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-500 hover:text-blue-700">
-        <a href="https://${bot.name}.herokuapp.com" target="_blank" class="hover:underline">https://${bot.name}.herokuapp.com</a>
+        <a href="https://${bot.name}.herokuapp.com" target="_blank" class="hover:underline">${bot.name}.herokuapp.com</a>
       </td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(bot.date).toLocaleDateString()}</td>
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-3">
+        ${new Date(bot.date).toLocaleDateString()}
+        <button onclick="deleteBot('${bot.name}')" class="text-red-500 hover:text-red-700 text-xs bg-red-100 px-2 py-1 rounded">
+          Delete
+        </button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
