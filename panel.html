@@ -10,9 +10,6 @@
     body {
       font-family: 'Poppins', sans-serif;
     }
-    .active-nav {
-      @apply bg-gradient-to-r from-purple-600 to-indigo-600 text-white;
-    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-gray-100 to-purple-100 min-h-screen">
@@ -28,9 +25,9 @@
       </nav>
     </aside>
 
-    <!-- Content Area -->
+    <!-- Main Content -->
     <main class="flex-1 p-8">
-      <!-- Add Coins -->
+      <!-- Add Coins View -->
       <section id="coinsView" class="hidden">
         <h2 class="text-2xl font-bold text-purple-700 mb-4">Add Coins to User</h2>
         <input id="coinUser" type="text" placeholder="Username" class="border border-purple-400 px-4 py-2 rounded mb-2 w-full focus:outline-none focus:ring-2 focus:ring-purple-500" />
@@ -38,19 +35,19 @@
         <button onclick="addCoins()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded shadow">➕ Add Coins</button>
       </section>
 
-      <!-- All Bots -->
+      <!-- All Bots View -->
       <section id="botsView" class="hidden">
         <h2 class="text-2xl font-bold text-purple-700 mb-4">All Bots</h2>
         <div id="botsList" class="space-y-4"></div>
       </section>
 
-      <!-- All Users -->
+      <!-- All Users View -->
       <section id="usersView" class="hidden">
         <h2 class="text-2xl font-bold text-purple-700 mb-4">All Users</h2>
         <div id="usersList" class="space-y-4"></div>
       </section>
 
-      <!-- Manage Files -->
+      <!-- Manage Files View -->
       <section id="filesView" class="hidden">
         <h2 class="text-2xl font-bold text-purple-700 mb-4">Manage Files</h2>
         <div id="filesList" class="space-y-4"></div>
@@ -61,6 +58,7 @@
   <script>
     let currentActive;
 
+    // Switch between views
     function showView(viewId, btn) {
       ['coinsView', 'botsView', 'usersView', 'filesView'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
@@ -76,27 +74,29 @@
       if (viewId === 'filesView') loadFiles();
     }
 
+    // ✅ Add Coins to a user
     async function addCoins() {
       const username = document.getElementById('coinUser').value.trim();
       const amount = parseInt(document.getElementById('coinAmount').value.trim());
 
       if (!username || isNaN(amount)) {
-        return Swal.fire("Error", "Enter valid username and amount", "error");
+        return Swal.fire("Error", "Please enter a valid username and amount", "error");
       }
 
-      const res = await fetch('/api/admin/add-coins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, amount })
-      });
-      const data = await res.json();
-      if (data.status) {
-        Swal.fire("✅ Success", data.message, "success");
-      } else {
-        Swal.fire("❌ Error", data.message, "error");
+      try {
+        const res = await fetch('/api/admin/add-coins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, amount })
+        });
+        const data = await res.json();
+        Swal.fire(data.status ? "✅ Success" : "❌ Error", data.message, data.status ? "success" : "error");
+      } catch (err) {
+        Swal.fire("Error", "Failed to connect to server", "error");
       }
     }
 
+    // ✅ Load all bots
     async function loadBots() {
       const res = await fetch('/api/admin/all-bots');
       const bots = await res.json();
@@ -109,7 +109,7 @@
         div.innerHTML = `
           <div>
             <strong class="text-indigo-700">${bot.name}</strong>
-            <span class="text-sm text-gray-500"> by ${bot.byUser}</span>
+            <span class="text-sm text-gray-500">by ${bot.byUser}</span>
           </div>
           <button onclick="deleteBot('${bot.name}')" class="text-red-600 hover:underline">Delete</button>
         `;
@@ -117,6 +117,7 @@
       });
     }
 
+    // ✅ Delete bot
     async function deleteBot(name) {
       const res = await fetch('/api/delete-bot', {
         method: 'POST',
@@ -124,14 +125,11 @@
         body: JSON.stringify({ appName: name, username: 'admin' })
       });
       const data = await res.json();
-      if (data.status) {
-        Swal.fire("Deleted", "Bot removed", "success");
-        loadBots();
-      } else {
-        Swal.fire("Error", data.message, "error");
-      }
+      Swal.fire(data.status ? "Deleted" : "Error", data.message, data.status ? "success" : "error");
+      if (data.status) loadBots();
     }
 
+    // ✅ Load all users
     async function loadUsers() {
       const res = await fetch('/api/admin/all-users');
       const users = await res.json();
@@ -141,11 +139,12 @@
       users.forEach(u => {
         const div = document.createElement('div');
         div.className = 'bg-white p-4 rounded shadow border-l-4 border-purple-400';
-        div.innerHTML = `<strong>${u.username}</strong> | ${u.email} | Coins: <span class="text-purple-600">${u.coins}</span>`;
+        div.innerHTML = `<strong>${u.username}</strong> | ${u.email} | Coins: <span class="text-purple-600 font-semibold">${u.coins}</span>`;
         container.appendChild(div);
       });
     }
 
+    // ✅ Load all non-core files
     async function loadFiles() {
       const res = await fetch('/api/admin/files');
       const files = await res.json();
@@ -163,6 +162,7 @@
       });
     }
 
+    // ✅ Delete a file
     async function deleteFile(fileName) {
       const res = await fetch('/api/admin/delete-file', {
         method: 'POST',
@@ -170,12 +170,8 @@
         body: JSON.stringify({ name: fileName })
       });
       const data = await res.json();
-      if (data.status) {
-        Swal.fire("Deleted", "File removed", "success");
-        loadFiles();
-      } else {
-        Swal.fire("Error", data.message, "error");
-      }
+      Swal.fire(data.status ? "Deleted" : "Error", data.message, data.status ? "success" : "error");
+      if (data.status) loadFiles();
     }
   </script>
 </body>

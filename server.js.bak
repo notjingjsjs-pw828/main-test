@@ -227,8 +227,10 @@ app.get('/api/bot-repos', (req, res) => {
 });
 
 app.post('/deploy', async (req, res) => {
-  const { sessionId, appName, username } = req.body;
-  if (!sessionId) return res.status(400).json({ error: 'Session ID required' });
+  const { sessionId, appName, username, repoUrl } = req.body;
+
+  if (!sessionId || !repoUrl)
+    return res.status(400).json({ error: 'Session ID and repoUrl are required' });
 
   const generatedAppName = appName?.trim()
     ? appName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
@@ -245,11 +247,13 @@ app.post('/deploy', async (req, res) => {
     }
 
     await axios.post('https://api.heroku.com/apps', { name: generatedAppName }, { headers: herokuHeaders });
+
     await axios.patch(`https://api.heroku.com/apps/${generatedAppName}/config-vars`, {
       SESSION_ID: sessionId
     }, { headers: herokuHeaders });
+
     await axios.post(`https://api.heroku.com/apps/${generatedAppName}/builds`, {
-      source_blob: { url: GITHUB_REPO_TARBALL }
+      source_blob: { url: repoUrl }
     }, { headers: herokuHeaders });
 
     const newBot = {
@@ -257,13 +261,14 @@ app.post('/deploy', async (req, res) => {
       byUser: username || 'anonymous',
       date: new Date().toISOString(),
       session: sessionId,
-      status: 'Deploying'
+      status: 'Deploying',
+      repo: repoUrl
     };
 
     bots.push(newBot);
     writeJsonFile(BOTS_FILE, bots);
 
-    // Set status to Active after 3 minutes
+    // وضعیت بعد از ۲ دقیقه Active شود
     setTimeout(() => {
       const updatedBots = readJsonFile(BOTS_FILE);
       const index = updatedBots.findIndex(b => b.name === generatedAppName);
