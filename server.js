@@ -446,6 +446,26 @@ app.post('/api/redeploy', async (req, res) => {
   }
 });
 
+// نمایش اطلاعات یک کاربر خاص
+app.get('/api/admin/user/:username', (req, res) => {
+  const users = readJsonFile(USERS_FILE);
+  const user = users.find(u => u.username === req.params.username);
+  if (!user) return res.status(404).json({ status: false, message: 'User not found' });
+  const { password, ...safeUser } = user;
+  res.json({ status: true, user: safeUser });
+});
+
+// حذف کاربر
+app.post('/api/admin/delete-user', (req, res) => {
+  const { username } = req.body;
+  let users = readJsonFile(USERS_FILE);
+  const index = users.findIndex(u => u.username === username);
+  if (index === -1) return res.json({ status: false, message: 'User not found' });
+  users.splice(index, 1);
+  writeJsonFile(USERS_FILE, users);
+  res.json({ status: true, message: `User ${username} deleted.` });
+});
+
 app.post('/api/admin/delete-file', (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ status: false, message: 'Filename required' });

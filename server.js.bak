@@ -221,6 +221,91 @@ app.post('/api/add-bot-repo', (req, res) => {
   res.json({ status: true, message: 'Bot added successfully' });
 });
 
+app.get('/deploy/bot/:name', async (req, res) => {
+  const botName = req.params.name;
+  const appName = req.query.appname?.trim();
+  const sessionId = req.query['session-id']?.trim();
+
+  if (!botName || !appName || !sessionId) {
+    return res.status(400).json({ status: false, message: "Missing bot name, appname or session-id" });
+  }
+
+  const botsList = readJsonFile('botrepos.json');
+  const selected = botsList.find(b => b.name === botName);
+
+  if (!selected) {
+    return res.status(404).json({ status: false, message: "Bot repo not found" });
+  }
+
+  const formattedAppName = appName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+  try {
+    // Check if app already exists to avoid conflict
+    await axios.get(`https://api.heroku.com/apps/${formattedAppName}`, {
+      headers: herokuHeaders
+    });
+
+    return res.status(409).json({
+      status: false,
+      message: "App name is already taken"
+    });
+
+  } catch (checkErr) {
+    if (checkErr.response?.status !== 404) {
+      return res.status(500).json({ status: false, message: "Error checking app existence", error: checkErr.message });
+    }
+    // Continue if app doesn't exist (404 is OK here)
+  }
+
+  try {
+    // Create new app
+    await axios.post(`https://api.heroku.com/apps`, {
+      name: formattedAppName
+    }, { headers: herokuHeaders });
+
+    // Set config var
+    await axios.patch(`https://api.heroku.com/apps/${formattedAppName}/config-vars`, {
+      SESSION_ID: sessionId
+    }, { headers: herokuHeaders });
+
+    // Build app from GitHub tarball
+    await axios.post(`https://api.heroku.com/apps/${formattedAppName}/builds`, {
+      source_blob: { url: selected.repoUrl }
+    }, { headers: herokuHeaders });
+
+    // Optional: Log success to your bots file
+    const bots = readJsonFile(BOTS_FILE);
+    bots.push({
+      name: formattedAppName,
+      byUser: 'api-deploy',
+      date: new Date().toISOString(),
+      session: sessionId,
+      status: 'Deploying',
+      repo: selected.repoUrl
+    });
+    writeJsonFile(BOTS_FILE, bots);
+
+    // Update to Active after 2 mins
+    setTimeout(() => {
+      const updated = readJsonFile(BOTS_FILE);
+      const index = updated.findIndex(b => b.name === formattedAppName);
+      if (index !== -1) {
+        updated[index].status = 'Active';
+        writeJsonFile(BOTS_FILE, updated);
+      }
+    }, 2 * 60 * 1000);
+
+    res.json({
+      status: true,
+      message: `✅ Bot deployed as ${formattedAppName}`,
+      url: `https://${formattedAppName}.herokuapp.com`
+    });
+  } catch (err) {
+    console.error("❌ API Deploy Error:", err.response?.data || err.message);
+    res.status(500).json({ status: false, message: "Deployment failed", error: err.message });
+  }
+});
+
 app.get('/api/bot-repos', (req, res) => {
   const bots = readJsonFile('botrepos.json');
   res.json(bots);

@@ -118,7 +118,7 @@
     const hintText = document.getElementById("whatsappHint");
 
     if (!phone || phone.length < 9) {
-      return Swal.fire("خطا", "شماره تلفن معتبر وارد کنید", "error");
+      return Swal.fire("خطا", "Enter the correct number", "error");
     }
 
     try {
@@ -130,12 +130,12 @@
         resultDiv.classList.remove("hidden");
         hintText.classList.remove("hidden");
       } else {
-        resultDiv.innerText = "کد دریافت نشد، لطفاً دوباره امتحان کنید.";
+        resultDiv.innerText = "error try again";
         resultDiv.classList.remove("hidden");
         hintText.classList.add("hidden");
       }
     } catch (error) {
-      Swal.fire("خطا", "خطا در ارتباط با سرور. دوباره تلاش کنید.", "error");
+      Swal.fire("error", "error in server please try again.", "error");
     }
   }
 </script>
