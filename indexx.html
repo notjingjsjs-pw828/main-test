@@ -581,13 +581,30 @@
     message.textContent = "";
     deployBtn.disabled = false;
   });
-
-  function initDashboard() {
-    showUserInfo();
-    loadUserBots();
-    loadBotRepos();
-    dashboard.style.display = "grid";
+  
+  async function updateCoinDisplay() {
+  try {
+    const res = await fetch(`/api/coins/${currentUser.username}`);
+    const data = await res.json();
+    if (data.status) {
+      currentUser.coins = data.coins;
+      localStorage.setItem("user", JSON.stringify(currentUser));
+      coinDisplay.innerHTML = `<i class="fas fa-coins mr-2"></i> ${data.coins}`;
+    } else {
+      console.warn("User not found.");
+    }
+  } catch (err) {
+    console.error("Error fetching coins:", err);
   }
+  }
+  
+  function initDashboard() {
+  showUserInfo();
+  updateCoinDisplay();  // ← ← ← اینجا اضافه کن
+  loadUserBots();
+  loadBotRepos();
+  dashboard.style.display = "grid";
+}
 
   window.addEventListener("DOMContentLoaded", initDashboard);
 </script>
