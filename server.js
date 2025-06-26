@@ -178,30 +178,57 @@ app.get('/api/coins/:username', (req, res) => {
 
 app.get('/api/heroku-logs/:appName', async (req, res) => {
   const appName = req.params.appName;
+  if (!appName) return res.status(400).json({ status: false, message: 'App name is required' });
+
   try {
-    const result = await axios({
-      method: 'GET',
-      url: `https://api.heroku.com/apps/${appName}/log-sessions`,
-      headers: {
-        Authorization: `Bearer ${process.env.HEROKU_API_KEY}`,
-        Accept: 'application/vnd.heroku+json; version=3',
-        'Content-Type': 'application/json',
-      },
-      data: {
+    // مرحله اول: ارسال درخواست ایجاد سشن لاگ
+    const result = await axios.post(
+      `https://api.heroku.com/apps/${appName}/log-sessions`,
+      {
         dyno: 'web',
         lines: 100,
         source: 'app',
         tail: false
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HEROKU_API_KEY}`,
+          Accept: 'application/vnd.heroku+json; version=3',
+          'Content-Type': 'application/json'
+        }
       }
-    });
+    );
 
-    const { logplex_url } = result.data;
+    if (!result.data?.logplex_url) {
+      console.error("❌ No logplex URL returned");
+      return res.status(500).json({ status: false, message: 'No log URL returned from Heroku' });
+    }
 
-    const logsResponse = await axios.get(logplex_url);
+    const logsResponse = await axios.get(result.data.logplex_url);
     res.json({ status: true, logs: logsResponse.data });
+
   } catch (err) {
-    console.error('Log fetch error:', err.message || err);
-    res.status(500).json({ status: false, message: 'Failed to fetch logs' });
+    console.error('❌ Error in fetching logs from Heroku:');
+    if (err.response) {
+      console.error("Status:", err.response.status);
+      console.error("Data:", err.response.data);
+      console.error("Headers:", err.response.headers);
+      return res.status(500).json({
+        status: false,
+        message: 'Failed to fetch logs',
+        error: {
+          status: err.response.status,
+          data: err.response.data
+        }
+      });
+    } else {
+      console.error("Error Message:", err.message);
+      return res.status(500).json({
+        status: false,
+        message: 'Log fetch failed',
+        error: err.message
+      });
+    }
   }
 });
 
