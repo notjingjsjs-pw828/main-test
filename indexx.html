@@ -334,7 +334,7 @@
   }
   }
   
-  async function redeployBot(appName, repoUrl) {
+  async function simpleRedeploy(appName, repoUrl) {
   const confirm = await Swal.fire({
     title: `Redeploy ${appName}?`,
     text: "It will rebuild the app on Heroku.",
@@ -344,8 +344,6 @@
   });
 
   if (!confirm.isConfirmed) return;
-
-  message.textContent = "Redeploying...";
 
   try {
     const res = await fetch('/api/redeploy', {
@@ -363,53 +361,6 @@
   } catch (err) {
     Swal.fire("Error", err.message || "Redeploy failed", "error");
   }
-
-  message.textContent = "";
-  }
-  
-  async function redeployBot(appName, sessionId, repoUrl) {
-  const confirm = await Swal.fire({
-    title: `Redeploy ${appName}?`,
-    text: "This will rebuild and restart the app using the same session and repo.",
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonColor: "#6b21a8",
-    cancelButtonColor: "#d33",
-    confirmButtonText: "Yes, redeploy!"
-  });
-
-  if (!confirm.isConfirmed) return;
-
-  message.textContent = "Redeploying...";
-  try {
-    const res = await fetch("/deploy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId,
-        appName,
-        username: currentUser.username,
-        repoUrl
-      })
-    });
-
-    const data = await res.json();
-
-    if (data.appUrl) {
-      Swal.fire({
-        icon: "success",
-        title: "Redeployed!",
-        html: `<a href="${data.appUrl}" target="_blank" class="text-blue-500 underline">${data.appUrl}</a>`
-      });
-      loadUserBots();
-    } else {
-      Swal.fire("Error", data.message || "Redeployment failed", "error");
-    }
-
-  } catch (err) {
-    Swal.fire("Error", err.message || "Unexpected error", "error");
-  }
-  message.textContent = "";
   }
 
   function renderBotsTable(bots) {
@@ -428,25 +379,66 @@
           ${new Date(bot.date).toLocaleDateString()}
           <button onclick="viewLogs('${bot.name}')" class="text-blue-500 bg-blue-100 px-2 py-1 rounded text-xs">Logs</button>
           <button onclick="deleteBot('${bot.name}')" class="text-red-500 bg-red-100 px-2 py-1 rounded text-xs">Delete</button>
-          <button onclick="redeployBot('${bot.name}', '${bot.session}', '${bot.repo}')" class="text-purple-500 hover:text-purple-700 text-xs bg-purple-100 px-2 py-1 rounded">
-            Redeploy
+          <button onclick="simpleRedeploy('${bot.name}', '${bot.repo}')" ...>Redeploy</button>
+          <button onclick="viewDetails('${bot.name}', '${bot.session}', 'https://${bot.name}.herokuapp.com')" 
+            class="text-green-600 bg-green-100 px-2 py-1 rounded text-xs">
+            View
           </button>
         </td>`;
       tbody.appendChild(tr);
     });
   }
 
+  
+  function viewDetails(appName, sessionId, url) {
+    Swal.fire({
+      title: `🔍 Bot Info - ${appName}`,
+      html: `
+        <div style="text-align:left;font-size:0.85rem">
+          <p><strong>📛 App Name:</strong> ${appName}</p>
+          <p><strong>🔑 Session ID:</strong> ${sessionId}</p>
+          <p><strong>🌐 URL:</strong> <a href="${url}" target="_blank" style="color:#3b82f6;">${url}</a></p>
+        </div>
+      `,
+      width: 600,
+      confirmButtonText: "Close"
+    });
+  }
+  
   async function viewLogs(appName) {
     try {
       const res = await fetch(`/api/heroku-logs/${appName}`);
       const data = await res.json();
-      if (!data.status) return Swal.fire("Error", data.message || "Failed to fetch logs", "error");
+
+      if (!data.status) {
+        return Swal.fire("Error", data.message || "Failed to fetch logs", "error");
+      }
+
+      const rawLogs = data.logs;
+
+      const lines = rawLogs.split('\n').filter(line => {
+        return line.trim() !== "" &&
+               !line.includes('┬') &&
+               !line.includes('┼') &&
+               !line.includes('│') &&
+               !line.includes('────');
+      });
+
+      const formattedLogs = lines.map(line => {
+        const match = line.match(/^(\d{4}-\d{2}-\d{2})T.*? appweb\.1:\s*(.*)$/);
+        if (!match) return "";
+        const [, date, message] = match;
+        let cleaned = message.replace(/^0\|BEN-BOT\s*\|/, "").trim();
+        return `${date} | BEN-BOT | ${cleaned}`;
+      }).filter(Boolean).join('\n');
+
       Swal.fire({
         title: `Logs - ${appName}`,
-        html: `<pre style="text-align:left;white-space:pre-wrap;max-height:400px;overflow:auto;font-size:0.75rem;">${data.logs}</pre>`,
-        width: 800,
+        html: `<pre style="text-align:left;white-space:pre-wrap;max-height:500px;overflow:auto;font-size:0.8rem;">${formattedLogs}</pre>`,
+        width: 900,
         confirmButtonText: "Close"
       });
+
     } catch (err) {
       Swal.fire("Error", err.message || "Could not fetch logs", "error");
     }

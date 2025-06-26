@@ -450,26 +450,57 @@ app.get('/api/admin/files', (req, res) => {
 app.post('/api/redeploy', async (req, res) => {
   const { appName, repoUrl } = req.body;
 
+  console.log(`🔄 Redeploy called for appName: ${appName}, repoUrl: ${repoUrl}`);
+
   if (!appName || !repoUrl) {
+    console.warn("⚠️ Missing input: appName or repoUrl");
     return res.status(400).json({ status: false, message: "Missing app name or repo URL" });
   }
 
   try {
-    await axios.post(`https://api.heroku.com/apps/${appName}/builds`, {
-      source_blob: { url: repoUrl }
-    }, { headers: herokuHeaders });
+    console.log(`📤 Sending build request to Heroku for ${appName}`);
+
+    const herokuResponse = await axios.post(
+      `https://api.heroku.com/apps/${appName}/builds`,
+      { source_blob: { url: repoUrl } },
+      { headers: herokuHeaders }
+    );
+
+    console.log(`✅ Build request sent successfully for ${appName}`);
+    console.log(`🔗 Heroku Build ID: ${herokuResponse.data.id || "unknown"}`);
+    console.log(`📦 Build Status: ${herokuResponse.status}`);
 
     res.json({
       status: true,
       message: `Redeploy started for ${appName}`,
       appUrl: `https://${appName}.herokuapp.com`
     });
+
   } catch (err) {
-    console.error("Redeploy error:", err.response?.data || err.message);
-    res.status(500).json({
-      status: false,
-      message: err.response?.data?.message || "Redeploy failed"
-    });
+    console.error("❌ Error during redeploy process:");
+
+    if (err.response) {
+      console.error("📛 Status:", err.response.status);
+      console.error("📄 Data:", err.response.data);
+      console.error("📬 Headers:", err.response.headers);
+      return res.status(500).json({
+        status: false,
+        message: err.response.data.message || "Redeploy failed",
+        debug: {
+          status: err.response.status,
+          heroku: err.response.data
+        }
+      });
+    } else {
+      console.error("📉 Error Message:", err.message);
+      return res.status(500).json({
+        status: false,
+        message: "Unknown error occurred during redeploy",
+        debug: {
+          message: err.message
+        }
+      });
+    }
   }
 });
 
