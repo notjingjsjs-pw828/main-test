@@ -101,9 +101,10 @@ app.post('/api/delete-bot', async (req, res) => {
     // گرفتن همه ربات‌ها از دیتابیس آنلاین
     const { data: bots } = await axios.get('https://database-benbot.onrender.com/api/bots');
 
-    // پیدا کردن ربات
-    const bot = bots.find(b => b.name === appName && b.byUser === username);
-    if (!bot) {
+    // فیلتر ربات مورد نظر برای حذف
+    const updatedBots = bots.filter(b => !(b.name === appName && b.byUser === username));
+
+    if (updatedBots.length === bots.length) {
       return res.status(404).json({ status: false, message: 'Bot not found or unauthorized' });
     }
 
@@ -112,8 +113,8 @@ app.post('/api/delete-bot', async (req, res) => {
       headers: herokuHeaders
     });
 
-    // حذف ربات از دیتابیس آنلاین با DELETE مستقیم
-    await axios.delete(`https://database-benbot.onrender.com/api/bots/${appName}`);
+    // آپدیت ربات‌ها در دیتابیس آنلاین
+    await axios.put('https://database-benbot.onrender.com/api/bots', updatedBots);
 
     res.json({ status: true, message: 'App deleted successfully' });
 
@@ -445,107 +446,67 @@ app.get('/api/admin/all-bots', async (req, res) => {
 
 // <!-- ✅ Bot Approval Management & File Tools Backend -->
 
-app.post('/api/admin/add-main-bot', async (req, res) => {
+// اضافه کردن ربات اصلی توسط ادمین
+app.post('/api/admin/add-main-bot', (req, res) => {
   const { name, repoUrl, docs } = req.body;
-  if (!name || !repoUrl) 
-    return res.status(400).json({ status: false, message: 'Missing name or repoUrl' });
+  if (!name || !repoUrl) return res.status(400).json({ status: false, message: 'Missing name or repoUrl' });
+  const bots = readJsonFile('botrepos.json');
+  if (bots.find(b => b.name === name)) return res.json({ status: false, message: 'Bot name exists' });
 
-  try {
-    // گرفتن همه ربات‌ها
-    const { data: bots } = await axios.get('https://database-benbot.onrender.com/api/botrepos');
-
-    if (bots.find(b => b.name === name)) 
-      return res.json({ status: false, message: 'Bot name exists' });
-
-    // اضافه کردن ربات جدید
-    bots.push({
-      name,
-      repoUrl,
-      docs: docs || '',
-      status: 'approved',
-      byUser: 'admin'
-    });
-
-    // ذخیره دوباره در دیتابیس آنلاین
-    await axios.put('https://database-benbot.onrender.com/api/botrepos', bots);
-
-    res.json({ status: true, message: 'Main bot added and approved.' });
-
-  } catch (err) {
-    console.error('Error adding main bot:', err.message);
-    res.status(500).json({ status: false, message: 'Server error' });
-  }
+  bots.push({
+    name,
+    repoUrl,
+    docs: docs || '',
+    status: 'approved', // مستقیماً تایید شده
+    byUser: 'admin'
+  });
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Main bot added and approved.' });
 });
 
 // دریافت همه ربات‌ها برای پنل ادمین
-app.get('/api/admin/botrepos', async (req, res) => {
-  try {
-    const { data: bots } = await axios.get('https://database-benbot.onrender.com/api/botrepos');
-    res.json(bots);
-  } catch (err) {
-    console.error('Error fetching bot repos:', err.message);
-    res.status(500).json({ status: false, message: 'Server error' });
-  }
+app.get('/api/admin/botrepos', (req, res) => {
+  const bots = readJsonFile('botrepos.json');
+  res.json(bots);
 });
+
 // تایید ربات توسط ادمین
-
-app.post('/api/admin/approve-bot-repo', async (req, res) => {
+// تایید رپو
+app.post('/api/admin/approve-bot-repo', (req, res) => {
   const { index } = req.body;
-  try {
-    const { data: bots } = await axios.get('https://database-benbot.onrender.com/api/botrepos');
-
-    if (typeof index !== 'number' || index < 0 || index >= bots.length) {
-      return res.json({ status: false, message: 'Invalid index' });
-    }
-
-    bots[index].status = 'approved';
-
-    await axios.put('https://database-benbot.onrender.com/api/botrepos', bots);
-    res.json({ status: true, message: 'Bot approved.' });
-  } catch (err) {
-    console.error('Approve bot repo error:', err.message);
-    res.status(500).json({ status: false, message: 'Server error' });
+  const bots = readJsonFile('botrepos.json');
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
   }
+  bots[index].status = 'approved';
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Bot approved.' });
 });
 
-app.post('/api/admin/edit-bot-repo', async (req, res) => {
+// ویرایش رپو
+app.post('/api/admin/edit-bot-repo', (req, res) => {
   const { index, name, repoUrl, docs } = req.body;
-  try {
-    const { data: bots } = await axios.get('https://database-benbot.onrender.com/api/botrepos');
-
-    if (typeof index !== 'number' || index < 0 || index >= bots.length) {
-      return res.json({ status: false, message: 'Invalid index' });
-    }
-
-    if (name) bots[index].name = name;
-    if (repoUrl) bots[index].repoUrl = repoUrl;
-    if (docs) bots[index].docs = docs;
-
-    await axios.put('https://database-benbot.onrender.com/api/botrepos', bots);
-    res.json({ status: true, message: 'Repo updated.' });
-  } catch (err) {
-    console.error('Edit bot repo error:', err.message);
-    res.status(500).json({ status: false, message: 'Server error' });
+  const bots = readJsonFile('botrepos.json');
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
   }
+  if (name) bots[index].name = name;
+  if (repoUrl) bots[index].repoUrl = repoUrl;
+  if (docs) bots[index].docs = docs;
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Repo updated.' });
 });
 
-app.post('/api/admin/delete-bot-repo', async (req, res) => {
+// حذف رپو
+app.post('/api/admin/delete-bot-repo', (req, res) => {
   const { index } = req.body;
-  try {
-    const { data: bots } = await axios.get('https://database-benbot.onrender.com/api/botrepos');
-
-    if (typeof index !== 'number' || index < 0 || index >= bots.length) {
-      return res.json({ status: false, message: 'Invalid index' });
-    }
-
-    bots.splice(index, 1);
-
-    await axios.put('https://database-benbot.onrender.com/api/botrepos', bots);
-    res.json({ status: true, message: 'Repo deleted.' });
-  } catch (err) {
-    console.error('Delete bot repo error:', err.message);
-    res.status(500).json({ status: false, message: 'Server error' });
+  const bots = readJsonFile('botrepos.json');
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
   }
+  bots.splice(index, 1);
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Repo deleted.' });
 });
 
 // جزئیات فایل همراه با مشاهده/ویرایش/حذف
