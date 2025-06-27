@@ -2,22 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Add Bot Repo</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6">
-  <div class="max-w-xl mx-auto bg-white shadow-lg p-6 rounded-lg">
-    <h2 class="text-2xl font-bold mb-4">Add New Bot Repository</h2>
-    <input id="botName" type="text" placeholder="Bot Name" class="w-full border p-2 mb-2 rounded" />
-    <input id="botRepo" type="text" placeholder="GitHub Repo URL" class="w-full border p-2 mb-4 rounded" />
-    <button onclick="addBot()" class="bg-blue-600 text-white px-4 py-2 rounded">Add Bot</button>
-    <div id="result" class="mt-4 text-sm"></div>
+<body class="bg-gradient-to-br from-gray-100 to-purple-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
+    <h2 class="text-2xl font-bold text-purple-700 mb-4 text-center">➕ Add New Bot Repository</h2>
+
+    <label for="botName" class="block text-sm font-semibold text-gray-700 mb-1">Bot Name</label>
+    <input id="botName" type="text" placeholder="e.g. Ben-Bot" class="w-full border border-purple-300 px-4 py-2 rounded mb-3 focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+
+    <label for="botRepo" class="block text-sm font-semibold text-gray-700 mb-1">GitHub Repo URL</label>
+    <input id="botRepo" type="text" placeholder="e.g. https://github.com/user/repo/tarball/main" class="w-full border border-purple-300 px-4 py-2 rounded mb-4 focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+
+    <button onclick="addBot()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-semibold transition">
+      💾 Add Bot
+    </button>
+
+    <div id="result" class="mt-4 text-center text-sm text-gray-600"></div>
   </div>
- 
+
   <script>
     async function addBot() {
       const name = document.getElementById('botName').value.trim();
       const repoUrl = document.getElementById('botRepo').value.trim();
+
+      if (!name || !repoUrl) {
+        return document.getElementById('result').innerText = "❌ Please enter both name and repo URL.";
+      }
 
       const res = await fetch('/api/add-bot-repo', {
         method: 'POST',

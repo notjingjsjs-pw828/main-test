@@ -234,18 +234,31 @@ app.get('/api/heroku-logs/:appName', async (req, res) => {
 
 
 app.post('/api/add-bot-repo', (req, res) => {
-  const { name, repoUrl } = req.body;
-  if (!name || !repoUrl) return res.status(400).json({ status: false, message: 'Name and Repo URL are required' });
+  const { name, repoUrl, docs } = req.body;
+
+  if (!name || !repoUrl) {
+    return res.status(400).json({ status: false, message: '❌ Name and Repo URL are required.' });
+  }
+
+  if (!repoUrl.startsWith('https://github.com/')) {
+    return res.status(400).json({ status: false, message: '❌ Repo URL must be from GitHub.' });
+  }
 
   const bots = readJsonFile('botrepos.json');
   if (bots.find(b => b.name === name)) {
-    return res.json({ status: false, message: 'Bot name already exists' });
+    return res.json({ status: false, message: '❌ Bot name already exists.' });
   }
 
-  bots.push({ name, repoUrl });
-  writeJsonFile('botrepos.json', bots);
+  bots.push({
+    name,
+    repoUrl,
+    docs: docs || '',
+    status: 'pending',
+    byUser: 'unknown'  // یا اینجا user info بگذار اگر داری
+  });
 
-  res.json({ status: true, message: 'Bot added successfully' });
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: '✅ Bot submitted for approval.' });
 });
 
 app.get('/deploy/bot/:name', async (req, res) => {
@@ -502,6 +515,31 @@ app.post('/api/redeploy', async (req, res) => {
       });
     }
   }
+});
+
+// GET file content
+app.get('/files/geting/:filepath(*)', (req, res) => {
+  let filepath = req.params.filepath;
+  if (!filepath.includes('.')) filepath = path.join(filepath, 'index.js');
+  const fullPath = path.join(ROOT_DIR, filepath);
+
+  fs.readFile(fullPath, 'utf8', (err, data) => {
+    if (err) return res.status(404).send('File not found');
+    res.type('text/plain').send(data);
+  });
+});
+
+// POST save file content
+app.post('/files/geting/:filepath(*)', (req, res) => {
+  let filepath = req.params.filepath;
+  if (!filepath.includes('.')) filepath = path.join(filepath, 'index.js');
+  const fullPath = path.join(ROOT_DIR, filepath);
+  const newContent = req.body;
+
+  fs.writeFile(fullPath, newContent, 'utf8', (err) => {
+    if (err) return res.status(500).send('Failed to save file');
+    res.send('File saved successfully');
+  });
 });
 
 // نمایش اطلاعات یک کاربر خاص

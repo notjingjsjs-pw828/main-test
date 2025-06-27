@@ -8,35 +8,52 @@
 </head>
 <body class="bg-gradient-to-br from-gray-100 to-purple-100 min-h-screen flex items-center justify-center p-4">
 
-  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
-    <h2 class="text-2xl font-bold text-purple-700 mb-4 text-center">➕ Add New Bot Repository</h2>
+  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-purple-700 text-center">➕ Add New Bot Repository</h2>
 
-    <label for="botName" class="block text-sm font-semibold text-gray-700 mb-1">Bot Name</label>
-    <input id="botName" type="text" placeholder="e.g. Ben-Bot" class="w-full border border-purple-300 px-4 py-2 rounded mb-3 focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+    <div>
+      <label for="botName" class="block text-sm font-semibold text-gray-700">Bot Name</label>
+      <input id="botName" type="text" placeholder="e.g. Ben-Bot"
+             class="w-full border border-purple-300 px-4 py-2 rounded focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+    </div>
 
-    <label for="botRepo" class="block text-sm font-semibold text-gray-700 mb-1">GitHub Repo URL</label>
-    <input id="botRepo" type="text" placeholder="e.g. https://github.com/user/repo/tarball/main" class="w-full border border-purple-300 px-4 py-2 rounded mb-4 focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+    <div>
+      <label for="botRepo" class="block text-sm font-semibold text-gray-700">GitHub Repo URL</label>
+      <input id="botRepo" type="text" placeholder="e.g. https://github.com/user/repo"
+             class="w-full border border-purple-300 px-4 py-2 rounded focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+    </div>
+
+    <div>
+      <label for="botDocs" class="block text-sm font-semibold text-gray-700">Docs URL (Optional)</label>
+      <input id="botDocs" type="text" placeholder="e.g. https://example.com"
+             class="w-full border border-purple-300 px-4 py-2 rounded focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+    </div>
 
     <button onclick="addBot()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg font-semibold transition">
-      💾 Add Bot
+      💾 Submit for Approval
     </button>
 
-    <div id="result" class="mt-4 text-center text-sm text-gray-600"></div>
+    <div id="result" class="mt-2 text-center text-sm text-gray-600"></div>
   </div>
 
   <script>
     async function addBot() {
       const name = document.getElementById('botName').value.trim();
       const repoUrl = document.getElementById('botRepo').value.trim();
+      const docs = document.getElementById('botDocs').value.trim();
 
       if (!name || !repoUrl) {
         return document.getElementById('result').innerText = "❌ Please enter both name and repo URL.";
       }
 
+      if (!repoUrl.startsWith("https://github.com/")) {
+        return document.getElementById('result').innerText = "❌ Repo URL must start with https://github.com/";
+      }
+
       const res = await fetch('/api/add-bot-repo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, repoUrl })
+        body: JSON.stringify({ name, repoUrl, docs })
       });
 
       const data = await res.json();
