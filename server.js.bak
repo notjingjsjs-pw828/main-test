@@ -355,16 +355,31 @@ app.get('/api/bot-repos', (req, res) => {
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username, repoUrl } = req.body;
 
-  if (!sessionId || !repoUrl)
-    return res.status(400).json({ error: 'Session ID and repoUrl are required' });
+  if (!sessionId || !repoUrl || !username)
+    return res.status(400).json({ error: 'Session ID, repoUrl, and username are required' });
 
   const generatedAppName = appName?.trim()
     ? appName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
     : `benbot-${uuidv4().slice(0, 6)}`;
 
   try {
-    const bots = readJsonFile(BOTS_FILE);
+    // 👤 بررسی و کم‌کردن سکه کاربر
+    const users = readJsonFile(USERS_FILE);
+    const userIndex = users.findIndex(u => u.username === username);
 
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (users[userIndex].coins < 10) {
+      return res.status(403).json({ error: 'Not enough coins to deploy a bot' });
+    }
+
+    users[userIndex].coins -= 10;
+    writeJsonFile(USERS_FILE, users);
+
+    // ✅ بررسی تعداد ربات‌ها
+    const bots = readJsonFile(BOTS_FILE);
     if (bots.length >= 100) {
       return res.status(403).json({
         error: 'Server limit reached',
@@ -372,6 +387,7 @@ app.post('/deploy', async (req, res) => {
       });
     }
 
+    // 🛠 ایجاد اپ در Heroku
     await axios.post('https://api.heroku.com/apps', { name: generatedAppName }, { headers: herokuHeaders });
 
     await axios.patch(`https://api.heroku.com/apps/${generatedAppName}/config-vars`, {
@@ -382,9 +398,10 @@ app.post('/deploy', async (req, res) => {
       source_blob: { url: repoUrl }
     }, { headers: herokuHeaders });
 
+    // 📦 ذخیره اطلاعات ربات در فایل
     const newBot = {
       name: generatedAppName,
-      byUser: username || 'anonymous',
+      byUser: username,
       date: new Date().toISOString(),
       session: sessionId,
       status: 'Deploying',
@@ -394,7 +411,7 @@ app.post('/deploy', async (req, res) => {
     bots.push(newBot);
     writeJsonFile(BOTS_FILE, bots);
 
-    // وضعیت بعد از ۲ دقیقه Active شود
+    // 🕒 بعد از ۲ دقیقه وضعیت را Active کنیم
     setTimeout(() => {
       const updatedBots = readJsonFile(BOTS_FILE);
       const index = updatedBots.findIndex(b => b.name === generatedAppName);
@@ -405,6 +422,7 @@ app.post('/deploy', async (req, res) => {
       }
     }, 2 * 60 * 1000);
 
+    // ✅ پاسخ نهایی
     res.json({ appUrl: `https://${generatedAppName}.herokuapp.com` });
 
   } catch (err) {

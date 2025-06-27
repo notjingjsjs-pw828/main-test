@@ -234,7 +234,7 @@ app.get('/api/heroku-logs/:appName', async (req, res) => {
 
 
 app.post('/api/add-bot-repo', (req, res) => {
-  const { name, repoUrl, docs } = req.body;
+  let { name, repoUrl, docs, byUser } = req.body;
 
   if (!name || !repoUrl) {
     return res.status(400).json({ status: false, message: '❌ Name and Repo URL are required.' });
@@ -244,8 +244,13 @@ app.post('/api/add-bot-repo', (req, res) => {
     return res.status(400).json({ status: false, message: '❌ Repo URL must be from GitHub.' });
   }
 
+  // تبدیل URL به tarball/main اگر لازم باشد
+  if (!repoUrl.endsWith('/tarball/main')) {
+    repoUrl = repoUrl.replace(/\/+$/, '') + '/tarball/main';
+  }
+
   const bots = readJsonFile('botrepos.json');
-  if (bots.find(b => b.name === name)) {
+  if (bots.find(b => b.name.toLowerCase() === name.toLowerCase())) {
     return res.json({ status: false, message: '❌ Bot name already exists.' });
   }
 
@@ -254,7 +259,7 @@ app.post('/api/add-bot-repo', (req, res) => {
     repoUrl,
     docs: docs || '',
     status: 'pending',
-    byUser: 'unknown'  // یا اینجا user info بگذار اگر داری
+    byUser: byUser || 'unknown'
   });
 
   writeJsonFile('botrepos.json', bots);

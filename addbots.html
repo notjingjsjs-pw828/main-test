@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Add Bot Repo</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -13,7 +13,7 @@
 
     <div>
       <label for="botName" class="block text-sm font-semibold text-gray-700">Bot Name</label>
-      <input id="botName" type="text" placeholder="e.g. Ben-Bot"
+      <input id="botName" type="text" placeholder="e.g. BEN-BOT"
              class="w-full border border-purple-300 px-4 py-2 rounded focus:ring-2 focus:ring-purple-500 focus:outline-none" />
     </div>
 
@@ -39,26 +39,60 @@
   <script>
     async function addBot() {
       const name = document.getElementById('botName').value.trim();
-      const repoUrl = document.getElementById('botRepo').value.trim();
+      let repoUrl = document.getElementById('botRepo').value.trim();
       const docs = document.getElementById('botDocs').value.trim();
+      const resultEl = document.getElementById('result');
 
       if (!name || !repoUrl) {
-        return document.getElementById('result').innerText = "❌ Please enter both name and repo URL.";
+        resultEl.innerText = "❌ Please enter both name and repo URL.";
+        return;
       }
 
-      if (!repoUrl.startsWith("https://github.com/")) {
-        return document.getElementById('result').innerText = "❌ Repo URL must start with https://github.com/";
+      // حتما URL رو به tarball/main تبدیل کن
+      if (!repoUrl.endsWith('/')) repoUrl += '/';
+      if (!repoUrl.endsWith('tarball/main')) {
+        // مثال: https://github.com/user/repo تبدیل شود به https://github.com/user/repo/tarball/main
+        if (repoUrl.includes('github.com/')) {
+          if (!repoUrl.endsWith('/')) repoUrl += '/';
+          repoUrl = repoUrl.replace(/\/+$/, '') + '/tarball/main';
+        } else {
+          resultEl.innerText = "❌ Repo URL must be a valid GitHub repository URL.";
+          return;
+        }
       }
 
-      const res = await fetch('/api/add-bot-repo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, repoUrl, docs })
-      });
+      // گرفتن یوزرنیم از localStorage
+      const userData = localStorage.getItem('user');
+      let byUser = 'unknown';
+      if (userData) {
+        try {
+          byUser = JSON.parse(userData).username || 'unknown';
+        } catch {
+          byUser = 'unknown';
+        }
+      }
 
-      const data = await res.json();
-      document.getElementById('result').innerText = data.message;
+      try {
+        const res = await fetch('/api/add-bot-repo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, repoUrl, docs, byUser })
+        });
+
+        const data = await res.json();
+        resultEl.innerText = data.message;
+
+        if (data.status) {
+          // موفقیت، پاک کردن فرم
+          document.getElementById('botName').value = '';
+          document.getElementById('botRepo').value = '';
+          document.getElementById('botDocs').value = '';
+        }
+      } catch (e) {
+        resultEl.innerText = '❌ Error sending request.';
+      }
     }
   </script>
+
 </body>
 </html>
