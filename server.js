@@ -315,49 +315,67 @@ app.get('/api/api/bot-repos', async (req, res) => {
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username, repoUrl } = req.body;
 
-  if (!sessionId || !repoUrl || !username)
+  console.log(`[${new Date().toISOString()}] /deploy called with sessionId=${sessionId}, appName=${appName}, username=${username}, repoUrl=${repoUrl}`);
+
+  if (!sessionId || !repoUrl || !username) {
+    console.warn(`[${new Date().toISOString()}] Missing required fields`);
     return res.status(400).json({ error: 'Session ID, repoUrl, and username are required' });
+  }
 
   const generatedAppName = appName?.trim()
     ? appName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
     : `benbot-${uuidv4().slice(0, 6)}`;
 
   try {
-    // 👤 دریافت و بررسی اطلاعات کاربر از دیتابیس آنلاین
+    console.log(`[${new Date().toISOString()}] Fetching user info for ${username}`);
     const { data: user } = await axios.get(`https://database-benbot.onrender.com/api/users/${username}`);
-    if (!user)
+
+    if (!user) {
+      console.warn(`[${new Date().toISOString()}] User ${username} not found`);
       return res.status(404).json({ error: 'User not found' });
+    }
+    console.log(`[${new Date().toISOString()}] User found: coins=${user.coins}`);
 
-    if (user.coins < 10)
+    if (user.coins < 10) {
+      console.warn(`[${new Date().toISOString()}] User ${username} does not have enough coins (${user.coins})`);
       return res.status(403).json({ error: 'Not enough coins to deploy a bot' });
+    }
 
-    // 💰 کم کردن 10 سکه از کاربر
+    console.log(`[${new Date().toISOString()}] Deducting 10 coins from user ${username}`);
     await axios.put(`https://database-benbot.onrender.com/api/users/${username}`, {
       ...user,
       coins: user.coins - 10
     });
+    console.log(`[${new Date().toISOString()}] Coins deducted successfully`);
 
-    // ✅ بررسی تعداد ربات‌ها از دیتابیس آنلاین
+    console.log(`[${new Date().toISOString()}] Checking current bots count`);
     const { data: bots } = await axios.get(`https://database-benbot.onrender.com/api/bots`);
+    console.log(`[${new Date().toISOString()}] Current bots count: ${bots.length}`);
+
     if (bots.length >= 100) {
+      console.warn(`[${new Date().toISOString()}] Server limit reached, cannot deploy new bot`);
       return res.status(403).json({
         error: 'Server limit reached',
         message: '💥 All server busy bots no allowed. Try again later.'
       });
     }
 
-    // 🛠 ایجاد اپ در Heroku
+    console.log(`[${new Date().toISOString()}] Creating Heroku app: ${generatedAppName}`);
     await axios.post('https://api.heroku.com/apps', { name: generatedAppName }, { headers: herokuHeaders });
+    console.log(`[${new Date().toISOString()}] Heroku app created`);
 
+    console.log(`[${new Date().toISOString()}] Setting config vars`);
     await axios.patch(`https://api.heroku.com/apps/${generatedAppName}/config-vars`, {
       SESSION_ID: sessionId
     }, { headers: herokuHeaders });
+    console.log(`[${new Date().toISOString()}] Config vars set`);
 
+    console.log(`[${new Date().toISOString()}] Starting build with repo ${repoUrl}`);
     await axios.post(`https://api.heroku.com/apps/${generatedAppName}/builds`, {
       source_blob: { url: repoUrl }
     }, { headers: herokuHeaders });
+    console.log(`[${new Date().toISOString()}] Build started`);
 
-    // 📦 ذخیره اطلاعات ربات در دیتابیس آنلاین
     const newBot = {
       name: generatedAppName,
       byUser: username,
@@ -367,26 +385,27 @@ app.post('/deploy', async (req, res) => {
       repo: repoUrl
     };
 
+    console.log(`[${new Date().toISOString()}] Saving new bot info to DB`);
     await axios.post(`https://database-benbot.onrender.com/api/bots`, newBot);
+    console.log(`[${new Date().toISOString()}] New bot saved`);
 
-    // 🕒 آپدیت وضعیت ربات به Active بعد از ۲ دقیقه
     setTimeout(async () => {
       try {
+        console.log(`[${new Date().toISOString()}] Updating bot status to Active for ${generatedAppName}`);
         await axios.put(`https://database-benbot.onrender.com/api/bots/${generatedAppName}`, {
           ...newBot,
           status: 'Active'
         });
         console.log(`✅ Bot ${generatedAppName} status updated to Active`);
       } catch (err) {
-        console.error(`❌ Failed to update bot status: ${err.message}`);
+        console.error(`[${new Date().toISOString()}] ❌ Failed to update bot status:`, err.response?.data || err.message);
       }
     }, 2 * 60 * 1000);
 
-    // ✅ پاسخ نهایی
     res.json({ appUrl: `https://${generatedAppName}.herokuapp.com` });
 
   } catch (err) {
-    console.error('❌ Deployment error:', err.response?.data || err.message);
+    console.error(`[${new Date().toISOString()}] ❌ Deployment error:`, err.response?.data || err.message);
     res.status(500).json({ error: 'Deployment failed', details: err.response?.data || err.message });
   }
 });
