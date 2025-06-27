@@ -8,7 +8,11 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.9",
+    "bcrypt": "*",
+    "dotenv": "^16.0.0",
+    "uuid": "*",
     "axios": "^1.5.0",
+    "tar": "^6.1.11",
     "body-parser": "^1.20.2",
     "express": "^4.18.2"
   },

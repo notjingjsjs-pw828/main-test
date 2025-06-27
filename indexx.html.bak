@@ -334,17 +334,6 @@
   }
   }
   
-  async function approveBot(name) {
-  const res = await fetch('/api/admin/approve-bot', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  });
-  const data = await res.json();
-  alert(data.message);
-  loadBots();
-  }
-  
   async function simpleRedeploy(appName, repoUrl) {
   const confirm = await Swal.fire({
     title: `Redeploy ${appName}?`,

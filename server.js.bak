@@ -8,7 +8,7 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const USERS_FILE = path.join(__dirname, 'allusers.json');
+const User = require('./models/User');
 const BOTS_FILE = path.join(__dirname, 'allbots.json');
 
 const HEROKU_API_KEY = process.env.HEROKU_API_KEY;
@@ -23,6 +23,16 @@ const herokuHeaders = {
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb+srv://mustafahmiakhel:vej2mmoY7VMoACfK@cluster0.ozjhtal.mongodb.net/botmanager?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ MongoDB connected successfully'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 function readJsonFile(filePath) {
   try {
@@ -355,6 +365,11 @@ app.get('/api/bot-repos', (req, res) => {
   const bots = readJsonFile('botrepos.json');
   const approvedBots = bots.filter(b => b.status === 'approved');
   res.json(approvedBots);
+});
+
+app.get('/api/api/bot-repos', (req, res) => {
+  const bots = readJsonFile('botrepos.json');
+  res.json(bots);
 });
 
 app.post('/deploy', async (req, res) => {

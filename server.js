@@ -8,7 +8,7 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const USERS_FILE = path.join(__dirname, 'allusers.json');
+const User = require('./models/User');
 const BOTS_FILE = path.join(__dirname, 'allbots.json');
 
 const HEROKU_API_KEY = process.env.HEROKU_API_KEY;
@@ -23,6 +23,16 @@ const herokuHeaders = {
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb+srv://mustafahmiakhel:vej2mmoY7VMoACfK@cluster0.ozjhtal.mongodb.net/botmanager?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ MongoDB connected successfully'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 function readJsonFile(filePath) {
   try {
@@ -54,9 +64,8 @@ function canAddCoins(user) {
 
 // Auth Routes
 // زمانی که کاربر ثبت‌نام می‌کند
-app.post('/api/signup', (req, res) => {
+app.post('/api/signup', async (req, res) => {
   const { username, phone, email, password } = req.body;
-  const users = readJsonFile(USERS_FILE);
 
   if (!username || !phone || !email || !password)
     return res.json({ status: false, message: 'All fields required' });
@@ -67,22 +76,40 @@ app.post('/api/signup', (req, res) => {
   if (password.length < 6)
     return res.json({ status: false, message: 'Password too short' });
 
-  if (users.find(u => u.username === username))
+  const existing = await User.findOne({ username });
+  if (existing)
     return res.json({ status: false, message: 'Username exists' });
 
-  // کاربر جدید با سکه صفر
-  const newUser = {
+  const newUser = new User({
     username,
     phone,
     email,
-    password,
-    coins: 0, // سکه صفر
-    lastCoinAdd: null // زمان دریافت اولین سکه
-  };
+    password, // می‌تونی بعداً bcrypt بزاری
+    coins: 0,
+    lastCoinAdd: null
+  });
 
-  users.push(newUser);
-  writeJsonFile(USERS_FILE, users);
+  await newUser.save();
   res.json({ status: true, message: 'Signup successful' });
+});
+
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  const user = await User.findOne({ username, password }); // می‌تونی بعداً bcrypt بزاری
+  if (!user)
+    return res.json({ status: false, message: 'Invalid credentials' });
+
+  res.json({
+    status: true,
+    message: 'Login successful',
+    user: {
+      username: user.username,
+      phone: user.phone,
+      email: user.email,
+      coins: user.coins
+    }
+  });
 });
 
 // اضافه کردن سکه
@@ -119,26 +146,6 @@ app.post('/api/add-coins', (req, res) => {
   user.lastCoinAdd = new Date().toISOString();
   writeJsonFile(USERS_FILE, users);
   res.json({ status: true, message: '10 coins added', coins: user.coins });
-});
-
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  const users = readJsonFile(USERS_FILE);
-  const user = users.find(u => u.username === username && u.password === password);
-
-  if (!user)
-    return res.json({ status: false, message: 'Invalid credentials' });
-
-  res.json({
-    status: true,
-    message: 'Login successful',
-    user: {
-      username: user.username,
-      phone: user.phone,
-      email: user.email,
-      coins: user.coins
-    }
-  });
 });
 
 app.post('/api/delete-bot', async (req, res) => {
