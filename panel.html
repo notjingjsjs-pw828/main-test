@@ -161,7 +161,7 @@
     }
 
     async function loadRepos() {
-      const res = await fetch('/api/bot-repos');
+      const res = await fetch('/api/api/bot-repos');
       const repos = await res.json();
       const list = document.getElementById('repoList');
       list.innerHTML = '';

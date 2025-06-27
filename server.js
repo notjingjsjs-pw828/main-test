@@ -357,6 +357,11 @@ app.get('/api/bot-repos', (req, res) => {
   res.json(approvedBots);
 });
 
+app.get('/api/api/bot-repos', (req, res) => {
+  const bots = readJsonFile('botrepos.json');
+  res.json(bots);
+});
+
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username, repoUrl } = req.body;
 
