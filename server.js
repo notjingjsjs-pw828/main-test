@@ -101,9 +101,10 @@ app.post('/api/delete-bot', async (req, res) => {
     // گرفتن همه ربات‌ها از دیتابیس آنلاین
     const { data: bots } = await axios.get('https://database-benbot.onrender.com/api/bots');
 
-    // پیدا کردن ربات
-    const bot = bots.find(b => b.name === appName && b.byUser === username);
-    if (!bot) {
+    // فیلتر ربات مورد نظر برای حذف
+    const updatedBots = bots.filter(b => !(b.name === appName && b.byUser === username));
+
+    if (updatedBots.length === bots.length) {
       return res.status(404).json({ status: false, message: 'Bot not found or unauthorized' });
     }
 
@@ -112,8 +113,8 @@ app.post('/api/delete-bot', async (req, res) => {
       headers: herokuHeaders
     });
 
-    // حذف ربات از دیتابیس آنلاین با DELETE مستقیم
-    await axios.delete(`https://database-benbot.onrender.com/api/bots/${appName}`);
+    // آپدیت ربات‌ها در دیتابیس آنلاین
+    await axios.put('https://database-benbot.onrender.com/api/bots', updatedBots);
 
     res.json({ status: true, message: 'App deleted successfully' });
 
