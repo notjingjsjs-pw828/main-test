@@ -529,7 +529,8 @@
         Swal.fire({ icon: "error", title: "Deployment Failed", text: data.message });
       }
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Deployment Error", text: err.message });
+  console.error('❌ Deployment error:', err.response?.data || err.message || err);
+  res.status(500).json({ error: 'Deployment failed', details: err.response?.data || err.message });
     }
 
     message.textContent = "";
