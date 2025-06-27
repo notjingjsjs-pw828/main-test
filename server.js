@@ -313,68 +313,77 @@ app.get('/api/api/bot-repos', async (req, res) => {
 
 
 app.post('/deploy', async (req, res) => {
-  const { sessionId, appName, username, repoUrl } = req.body;
+  const { sessionId, mode, appName, username, repoUrl } = req.body;
 
-  if (!sessionId || !repoUrl || !username)
-    return res.status(400).json({ error: 'Session ID, repoUrl, and username are required' });
+  if (!sessionId || !repoUrl || !username || !mode)
+    return res.status(400).json({ error: 'Session ID, repoUrl, username and mode are required' });
 
   const generatedAppName = appName?.trim()
     ? appName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
     : `benbot-${uuidv4().slice(0, 6)}`;
 
   try {
-    // 👤 دریافت و بررسی اطلاعات کاربر از دیتابیس آنلاین
+    // دریافت اطلاعات کاربر و بررسی کوین
     const { data: user } = await axios.get(`https://database-benbot.onrender.com/api/users/${username}`);
-    if (!user)
-      return res.status(404).json({ error: 'User not found' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.coins < 10) return res.status(403).json({ error: 'Not enough coins to deploy a bot' });
 
-    if (user.coins < 10)
-      return res.status(403).json({ error: 'Not enough coins to deploy a bot' });
-
-    // 💰 کم کردن 10 سکه از کاربر
+    // کم کردن کوین
     await axios.put(`https://database-benbot.onrender.com/api/users/${username}`, {
       ...user,
-      coins: user.coins - 10
+      coins: user.coins - 10,
     });
 
-    // ✅ بررسی تعداد ربات‌ها از دیتابیس آنلاین
+    // بررسی تعداد ربات‌ها
     const { data: bots } = await axios.get(`https://database-benbot.onrender.com/api/bots`);
     if (bots.length >= 100) {
       return res.status(403).json({
         error: 'Server limit reached',
-        message: '💥 All server busy bots no allowed. Try again later.'
+        message: '💥 All server busy bots no allowed. Try again later.',
       });
     }
 
-    // 🛠 ایجاد اپ در Heroku
+    // ایجاد اپ در Heroku
     await axios.post('https://api.heroku.com/apps', { name: generatedAppName }, { headers: herokuHeaders });
 
-    await axios.patch(`https://api.heroku.com/apps/${generatedAppName}/config-vars`, {
-      SESSION_ID: sessionId
-    }, { headers: herokuHeaders });
+    // تنظیم متغیرهای محیطی شامل SESSION_ID و MODE
+    await axios.patch(
+      `https://api.heroku.com/apps/${generatedAppName}/config-vars`,
+      {
+        SESSION_ID: sessionId,
+        MODE: mode.toLowerCase(), // مطمئن شو حالت کوچیک ذخیره میشه
+      },
+      { headers: herokuHeaders }
+    );
 
-    await axios.post(`https://api.heroku.com/apps/${generatedAppName}/builds`, {
-      source_blob: { url: repoUrl }
-    }, { headers: herokuHeaders });
+    // شروع ساخت (Build) اپ از رپو
+    await axios.post(
+      `https://api.heroku.com/apps/${generatedAppName}/builds`,
+      {
+        source_blob: { url: repoUrl },
+      },
+      { headers: herokuHeaders }
+    );
 
-    // 📦 ذخیره اطلاعات ربات در دیتابیس آنلاین
+    // ذخیره اطلاعات ربات در دیتابیس
     const newBot = {
       name: generatedAppName,
       byUser: username,
       date: new Date().toISOString(),
       session: sessionId,
+      mode: mode.toLowerCase(),
       status: 'Deploying',
-      repo: repoUrl
+      repo: repoUrl,
     };
 
     await axios.post(`https://database-benbot.onrender.com/api/bots`, newBot);
 
-    // 🕒 آپدیت وضعیت ربات به Active بعد از ۲ دقیقه
+    // به‌روزرسانی وضعیت به Active پس از 2 دقیقه
     setTimeout(async () => {
       try {
         await axios.put(`https://database-benbot.onrender.com/api/bots/${generatedAppName}`, {
           ...newBot,
-          status: 'Active'
+          status: 'Active',
         });
         console.log(`✅ Bot ${generatedAppName} status updated to Active`);
       } catch (err) {
@@ -382,9 +391,8 @@ app.post('/deploy', async (req, res) => {
       }
     }, 2 * 60 * 1000);
 
-    // ✅ پاسخ نهایی
+    // پاسخ موفق
     res.json({ appUrl: `https://${generatedAppName}.herokuapp.com` });
-
   } catch (err) {
     console.error('❌ Deployment error:', err.response?.data || err.message);
     res.status(500).json({ error: 'Deployment failed', details: err.response?.data || err.message });
