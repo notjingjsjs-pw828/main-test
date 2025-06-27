@@ -471,37 +471,42 @@ app.get('/api/admin/botrepos', (req, res) => {
 });
 
 // تایید ربات توسط ادمین
-app.post('/api/admin/approve-bot', (req, res) => {
-  const { name } = req.body;
+// تایید رپو
+app.post('/api/admin/approve-bot-repo', (req, res) => {
+  const { index } = req.body;
   const bots = readJsonFile('botrepos.json');
-  const index = bots.findIndex(b => b.name === name);
-  if (index === -1) return res.json({ status: false, message: 'Bot not found' });
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
+  }
   bots[index].status = 'approved';
   writeJsonFile('botrepos.json', bots);
   res.json({ status: true, message: 'Bot approved.' });
 });
 
-// حذف ربات از botrepos
-app.post('/api/admin/delete-repo', (req, res) => {
-  const { name } = req.body;
-  const bots = readJsonFile('botrepos.json');
-  const filtered = bots.filter(b => b.name !== name);
-  writeJsonFile('botrepos.json', filtered);
-  res.json({ status: true, message: 'Repo deleted.' });
-});
-
-// ویرایش ربات
+// ویرایش رپو
 app.post('/api/admin/edit-bot-repo', (req, res) => {
   const { index, name, repoUrl, docs } = req.body;
   const bots = readJsonFile('botrepos.json');
-  if (index < 0 || index >= bots.length) return res.json({ status: false, message: 'Invalid index' });
-
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
+  }
   if (name) bots[index].name = name;
   if (repoUrl) bots[index].repoUrl = repoUrl;
   if (docs) bots[index].docs = docs;
-
   writeJsonFile('botrepos.json', bots);
   res.json({ status: true, message: 'Repo updated.' });
+});
+
+// حذف رپو
+app.post('/api/admin/delete-bot-repo', (req, res) => {
+  const { index } = req.body;
+  const bots = readJsonFile('botrepos.json');
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
+  }
+  bots.splice(index, 1);
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Repo deleted.' });
 });
 
 // جزئیات فایل همراه با مشاهده/ویرایش/حذف
@@ -595,6 +600,8 @@ app.post('/api/redeploy', async (req, res) => {
     }
   }
 });
+
+const ROOT_DIR = __dirname;
 
 // GET file content
 app.get('/files/geting/:filepath(*)', (req, res) => {
