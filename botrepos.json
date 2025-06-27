@@ -5,12 +5,5 @@
     "repoUrl": "https://github.com/NOTHING-MD420/project-test/tarball/main",
     "status": "approved",
     "byUser": "admin"
-  },
-  {
-    "name": "ALi-BOT",
-    "docs": "https://ali-bot-docs.example.com",
-    "repoUrl": "https://github.com/ali-user/ali-bot/tarball/main",
-    "status": "pending",
-    "byUser": "ali"
   }
 ]

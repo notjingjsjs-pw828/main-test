@@ -2,42 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin Panel</title>
+  <title>Admin Panel - Bot Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html { scroll-behavior: smooth; }
-    .fade { animation: fadein 1s ease-in-out; }
+    .fade { animation: fadein 0.6s ease-in-out; }
     @keyframes fadein {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    button.action {
+      background-color: #374151;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      transition: background 0.3s;
+    }
+    button.action:hover {
+      background-color: #4b5563;
+    }
   </style>
 </head>
-<body class="bg-gray-900 text-white font-sans p-4">
-
+<body class="bg-gray-900 text-white font-sans p-6">
   <header class="sticky top-0 z-50 bg-gray-800 p-4 rounded shadow mb-4">
-    <h1 class="text-2xl font-bold text-center">🌐 Admin Panel</h1>
+    <h1 class="text-2xl font-bold text-center">🤖 Admin Panel - Bot Management</h1>
   </header>
 
-  <main class="space-y-6 max-w-2xl mx-auto fade">
+  <main class="space-y-8 max-w-5xl mx-auto fade">
 
     <!-- Add Coins -->
     <section>
       <h2 class="text-xl font-semibold">➕ Add Coins</h2>
-      <div class="flex flex-col md:flex-row gap-2 mt-2">
-        <input id="coinUsername" placeholder="Username" class="text-black p-2 rounded flex-1" />
-        <input id="coinAmount" type="number" placeholder="Amount" class="text-black p-2 rounded flex-1" />
-        <button onclick="addCoins()" class="bg-green-500 hover:bg-green-600 p-2 rounded">Add</button>
+      <div class="grid md:grid-cols-3 gap-3 mt-2">
+        <input id="coinUsername" placeholder="Username" class="text-black p-2 rounded" />
+        <input id="coinAmount" type="number" placeholder="Amount" class="text-black p-2 rounded" />
+        <button onclick="addCoins()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">Add</button>
+      </div>
+    </section>
+
+    <!-- Remove Coins -->
+    <section>
+      <h2 class="text-xl font-semibold">➖ Remove Coins</h2>
+      <div class="grid md:grid-cols-3 gap-3 mt-2">
+        <input id="removeUsername" placeholder="Username" class="text-black p-2 rounded" />
+        <input id="removeAmount" type="number" placeholder="Amount" class="text-black p-2 rounded" />
+        <button onclick="removeCoins()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">Remove</button>
       </div>
     </section>
 
     <!-- Search User -->
     <section>
-      <h2 class="text-xl font-semibold">🔎 Search User</h2>
+      <h2 class="text-xl font-semibold">🔍 Search User</h2>
       <div class="flex flex-col md:flex-row gap-2 mt-2">
         <input id="searchUsername" placeholder="Username" class="text-black p-2 rounded flex-1" />
-        <button onclick="searchUser()" class="bg-blue-500 hover:bg-blue-600 p-2 rounded">Search</button>
+        <button onclick="searchUser()" class="bg-blue-600 hover:bg-blue-700 p-2 rounded">Search</button>
       </div>
       <pre id="userResult" class="bg-gray-800 mt-2 p-3 rounded text-sm overflow-auto"></pre>
     </section>
@@ -49,26 +68,32 @@
       <ul id="userList" class="bg-gray-800 p-3 rounded max-h-60 overflow-y-auto text-sm space-y-1"></ul>
     </section>
 
-    <!-- All Bots -->
+    <!-- Add Main Bot -->
     <section>
-      <h2 class="text-xl font-semibold">🤖 All Bots</h2>
-      <button onclick="loadBots()" class="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded mb-2">Load Bots</button>
-      <ul id="botList" class="bg-gray-800 p-3 rounded max-h-60 overflow-y-auto text-sm space-y-1"></ul>
+      <h2 class="text-xl font-semibold">📌 Add Main Bot Repo</h2>
+      <div class="grid md:grid-cols-3 gap-3 mt-2">
+        <input id="botName" placeholder="Bot Name" class="text-black p-2 rounded" />
+        <input id="botRepo" placeholder="GitHub Tarball URL" class="text-black p-2 rounded" />
+        <input id="botDocs" placeholder="Docs URL (optional)" class="text-black p-2 rounded" />
+      </div>
+      <button onclick="addMainBot()" class="mt-3 bg-green-500 hover:bg-green-600 px-4 py-2 rounded">Add Bot</button>
+    </section>
+
+    <!-- Pending/Approved Repos -->
+    <section>
+      <h2 class="text-xl font-semibold">✅ Approve/Edit/Delete Bots</h2>
+      <ul id="repoList" class="bg-gray-800 p-4 rounded space-y-2 text-sm max-h-80 overflow-auto"></ul>
+      <button onclick="loadRepos()" class="mt-2 bg-blue-500 hover:bg-blue-600 px-4 py-1 rounded">Reload Repos</button>
     </section>
 
     <!-- Files -->
     <section>
-      <h2 class="text-xl font-semibold">📁 Files</h2>
-      <button onclick="loadFiles()" class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded mb-2">Load Files</button>
-      <ul id="fileList" class="bg-gray-800 p-3 rounded max-h-60 overflow-y-auto text-sm space-y-1"></ul>
+      <h2 class="text-xl font-semibold">📁 File Manager</h2>
+      <ul id="fileList" class="bg-gray-800 p-4 rounded space-y-2 text-sm max-h-80 overflow-auto"></ul>
+      <button onclick="loadFiles()" class="mt-2 bg-purple-500 hover:bg-purple-600 px-4 py-1 rounded">Reload Files</button>
     </section>
 
   </main>
-
-  <!-- Back to Top -->
-  <footer class="text-center mt-10">
-    <a href="#" class="text-blue-400 hover:underline">🔝 Back to Top</a>
-  </footer>
 
   <script>
     async function addCoins() {
@@ -79,8 +104,25 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, amount })
       });
+      alert((await res.json()).message);
+    }
+
+    async function removeCoins() {
+      const username = document.getElementById('removeUsername').value;
+      const amount = parseInt(document.getElementById('removeAmount').value);
+      const res = await fetch('/api/admin/remove-coins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, amount })
+      });
+      alert((await res.json()).message);
+    }
+
+    async function searchUser() {
+      const username = document.getElementById('searchUsername').value;
+      const res = await fetch(`/api/admin/user/${username}`);
       const data = await res.json();
-      alert(data.message);
+      document.getElementById('userResult').textContent = data.status ? JSON.stringify(data.user, null, 2) : data.message;
     }
 
     async function loadUsers() {
@@ -102,66 +144,133 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username })
       });
-      const data = await res.json();
-      alert(data.message);
+      alert((await res.json()).message);
       loadUsers();
     }
 
-    async function searchUser() {
-      const username = document.getElementById('searchUsername').value;
-      const res = await fetch(`/api/admin/user/${username}`);
-      const data = await res.json();
-      const box = document.getElementById('userResult');
-      box.textContent = data.status ? JSON.stringify(data.user, null, 2) : data.message;
+    async function addMainBot() {
+      const name = document.getElementById('botName').value;
+      const repoUrl = document.getElementById('botRepo').value;
+      const docs = document.getElementById('botDocs').value;
+      const res = await fetch('/api/add-bot-repo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, repoUrl, docs })
+      });
+      alert((await res.json()).message);
+      loadRepos();
     }
 
-    async function loadBots() {
-      const res = await fetch('/api/admin/all-bots');
-      const bots = await res.json();
-      const botList = document.getElementById('botList');
-      botList.innerHTML = '';
-      bots.forEach(b => {
+    async function loadRepos() {
+      const res = await fetch('/api/bot-repos');
+      const repos = await res.json();
+      const list = document.getElementById('repoList');
+      list.innerHTML = '';
+      repos.forEach((r, i) => {
         const li = document.createElement('li');
-        li.innerHTML = `${b.name} | ${b.byUser} | ${b.status}
-          <button onclick="deleteBot('${b.name}', '${b.byUser}')" class="text-red-400 ml-2 underline">Delete</button>`;
-        botList.appendChild(li);
+        li.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div>
+              <span class="font-bold">${r.name}</span> 
+              <span class="text-gray-400">[${r.status}]</span><br/>
+              <span class="text-xs text-blue-400">${r.repoUrl}</span>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="approveRepo(${i})" class="action bg-green-600">Approve</button>
+              <button onclick="editRepo(${i})" class="action bg-yellow-600">Edit</button>
+              <button onclick="deleteRepo(${i})" class="action bg-red-600">Delete</button>
+            </div>
+          </div>`;
+        list.appendChild(li);
       });
     }
 
-    async function deleteBot(appName, username) {
-      const res = await fetch('/api/delete-bot', {
+    async function approveRepo(index) {
+      const res = await fetch('/api/admin/approve-bot-repo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appName, username })
+        body: JSON.stringify({ index })
       });
-      const data = await res.json();
-      alert(data.message);
-      loadBots();
+      alert((await res.json()).message);
+      loadRepos();
+    }
+
+    async function editRepo(index) {
+      const name = prompt('New name:');
+      const repoUrl = prompt('New repo URL:');
+      const docs = prompt('New docs URL:');
+      const res = await fetch('/api/admin/edit-bot-repo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ index, name, repoUrl, docs })
+      });
+      alert((await res.json()).message);
+      loadRepos();
+    }
+
+    async function deleteRepo(index) {
+      if (!confirm('Delete this repo?')) return;
+      const res = await fetch('/api/admin/delete-bot-repo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ index })
+      });
+      alert((await res.json()).message);
+      loadRepos();
     }
 
     async function loadFiles() {
       const res = await fetch('/api/admin/files');
       const files = await res.json();
-      const fileList = document.getElementById('fileList');
-      fileList.innerHTML = '';
-      files.forEach(f => {
+      const list = document.getElementById('fileList');
+      list.innerHTML = '';
+      files.forEach(name => {
         const li = document.createElement('li');
-        li.innerHTML = `${f}
-          <button onclick="deleteFile('${f}')" class="text-red-400 ml-2 underline">Delete</button>`;
-        fileList.appendChild(li);
+        li.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span>${name}</span>
+            <div class="flex gap-2">
+              <button class="action bg-blue-600" onclick="viewFile('${name}')">View</button>
+              <button class="action bg-yellow-600" onclick="editFile('${name}')">Edit</button>
+              <button class="action bg-red-600" onclick="deleteFile('${name}')">Delete</button>
+            </div>
+          </div>`;
+        list.appendChild(li);
       });
     }
 
+    function viewFile(name) {
+      window.open(`/files/geting/${name}`, '_blank');
+    }
+
+    async function editFile(name) {
+      const current = await fetch(`/files/geting/${name}`).then(r => r.text());
+      const edited = prompt(`Edit ${name}:`, current);
+      if (edited != null) {
+        await fetch(`/files/geting/${name}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: edited
+        });
+        alert('File saved');
+        loadFiles();
+      }
+    }
+
     async function deleteFile(name) {
+      if (!confirm(`Delete file ${name}?`)) return;
       const res = await fetch('/api/admin/delete-file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
       });
-      const data = await res.json();
-      alert(data.message);
+      alert((await res.json()).message);
       loadFiles();
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadRepos();
+      loadFiles();
+    });
   </script>
 </body>
 </html>

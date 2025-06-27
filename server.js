@@ -348,7 +348,8 @@ app.get('/deploy/bot/:name', async (req, res) => {
 
 app.get('/api/bot-repos', (req, res) => {
   const bots = readJsonFile('botrepos.json');
-  res.json(bots);
+  const approvedBots = bots.filter(b => b.status === 'approved');
+  res.json(approvedBots);
 });
 
 app.post('/deploy', async (req, res) => {
@@ -440,6 +441,89 @@ app.post('/api/admin/add-coins', (req, res) => {
 app.get('/api/admin/all-bots', (req, res) => {
   const bots = readJsonFile(BOTS_FILE);
   res.json(bots);
+});
+
+
+// <!-- ✅ Bot Approval Management & File Tools Backend -->
+
+// اضافه کردن ربات اصلی توسط ادمین
+app.post('/api/admin/add-main-bot', (req, res) => {
+  const { name, repoUrl, docs } = req.body;
+  if (!name || !repoUrl) return res.status(400).json({ status: false, message: 'Missing name or repoUrl' });
+  const bots = readJsonFile('botrepos.json');
+  if (bots.find(b => b.name === name)) return res.json({ status: false, message: 'Bot name exists' });
+
+  bots.push({
+    name,
+    repoUrl,
+    docs: docs || '',
+    status: 'approved', // مستقیماً تایید شده
+    byUser: 'admin'
+  });
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Main bot added and approved.' });
+});
+
+// دریافت همه ربات‌ها برای پنل ادمین
+app.get('/api/admin/botrepos', (req, res) => {
+  const bots = readJsonFile('botrepos.json');
+  res.json(bots);
+});
+
+// تایید ربات توسط ادمین
+// تایید رپو
+app.post('/api/admin/approve-bot-repo', (req, res) => {
+  const { index } = req.body;
+  const bots = readJsonFile('botrepos.json');
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
+  }
+  bots[index].status = 'approved';
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Bot approved.' });
+});
+
+// ویرایش رپو
+app.post('/api/admin/edit-bot-repo', (req, res) => {
+  const { index, name, repoUrl, docs } = req.body;
+  const bots = readJsonFile('botrepos.json');
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
+  }
+  if (name) bots[index].name = name;
+  if (repoUrl) bots[index].repoUrl = repoUrl;
+  if (docs) bots[index].docs = docs;
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Repo updated.' });
+});
+
+// حذف رپو
+app.post('/api/admin/delete-bot-repo', (req, res) => {
+  const { index } = req.body;
+  const bots = readJsonFile('botrepos.json');
+  if (typeof index !== 'number' || index < 0 || index >= bots.length) {
+    return res.json({ status: false, message: 'Invalid index' });
+  }
+  bots.splice(index, 1);
+  writeJsonFile('botrepos.json', bots);
+  res.json({ status: true, message: 'Repo deleted.' });
+});
+
+// جزئیات فایل همراه با مشاهده/ویرایش/حذف
+app.get('/api/admin/file-content/:name', (req, res) => {
+  const name = req.params.name;
+  const fullPath = path.join(__dirname, name);
+  if (!fs.existsSync(fullPath)) return res.status(404).json({ status: false, message: 'File not found' });
+  const content = fs.readFileSync(fullPath, 'utf8');
+  res.json({ status: true, content });
+});
+
+app.post('/api/admin/save-file', (req, res) => {
+  const { name, content } = req.body;
+  const fullPath = path.join(__dirname, name);
+  if (!fs.existsSync(fullPath)) return res.status(404).json({ status: false, message: 'File not found' });
+  fs.writeFileSync(fullPath, content, 'utf8');
+  res.json({ status: true, message: 'File saved.' });
 });
 
 
@@ -581,6 +665,26 @@ app.post('/api/admin/delete-file', (req, res) => {
   });
 });
 
+
+app.post('/api/admin/remove-coins', (req, res) => {
+  const { username, amount } = req.body;
+  if (!username || typeof amount !== 'number') {
+    return res.status(400).json({ status: false, message: 'Invalid input' });
+  }
+
+  const users = readJsonFile(USERS_FILE);
+  const userIndex = users.findIndex(u => u.username === username);
+  if (userIndex === -1) return res.json({ status: false, message: 'User not found' });
+
+  if (users[userIndex].coins < amount) {
+    return res.json({ status: false, message: 'User does not have enough coins' });
+  }
+
+  users[userIndex].coins -= amount;
+  writeJsonFile(USERS_FILE, users);
+
+  res.json({ status: true, message: `Removed ${amount} coins from ${username}` });
+});
 
 // Static Routes
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
