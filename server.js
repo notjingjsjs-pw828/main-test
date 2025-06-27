@@ -8,7 +8,6 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const User = require('./models/User');
 const BOTS_FILE = path.join(__dirname, 'allbots.json');
 
 const HEROKU_API_KEY = process.env.HEROKU_API_KEY;
@@ -23,16 +22,6 @@ const herokuHeaders = {
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-
-const mongoose = require('mongoose');
-
-mongoose.connect('mongodb+srv://mustafahmiakhel:vej2mmoY7VMoACfK@cluster0.ozjhtal.mongodb.net/botmanager?retryWrites=true&w=majority&appName=Cluster0', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ MongoDB connected successfully'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
 
 function readJsonFile(filePath) {
   try {
@@ -63,7 +52,7 @@ function canAddCoins(user) {
 }
 
 // Auth Routes
-// زمانی که کاربر ثبت‌نام می‌کند
+
 app.post('/api/signup', async (req, res) => {
   const { username, phone, email, password } = req.body;
 
@@ -76,76 +65,52 @@ app.post('/api/signup', async (req, res) => {
   if (password.length < 6)
     return res.json({ status: false, message: 'Password too short' });
 
-  const existing = await User.findOne({ username });
-  if (existing)
-    return res.json({ status: false, message: 'Username exists' });
+  try {
+    const { data: users } = await axios.get('https://database-benbot.onrender.com/api/users');
 
-  const newUser = new User({
-    username,
-    phone,
-    email,
-    password, // می‌تونی بعداً bcrypt بزاری
-    coins: 0,
-    lastCoinAdd: null
-  });
+    if (users.find(u => u.username === username))
+      return res.json({ status: false, message: 'Username exists' });
 
-  await newUser.save();
-  res.json({ status: true, message: 'Signup successful' });
+    const newUser = {
+      username,
+      phone,
+      email,
+      password,
+      coins: 0,
+      lastCoinAdd: null
+    };
+
+    await axios.post('https://database-benbot.onrender.com/api/users', newUser);
+    res.json({ status: true, message: 'Signup successful' });
+  } catch {
+    res.json({ status: false, message: 'Server error' });
+  }
 });
+
+// اضافه کردن سکه
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
-  const user = await User.findOne({ username, password }); // می‌تونی بعداً bcrypt بزاری
-  if (!user)
-    return res.json({ status: false, message: 'Invalid credentials' });
+  try {
+    const { data: user } = await axios.get(`https://database-benbot.onrender.com/api/users/${username}`);
 
-  res.json({
-    status: true,
-    message: 'Login successful',
-    user: {
-      username: user.username,
-      phone: user.phone,
-      email: user.email,
-      coins: user.coins
-    }
-  });
-});
+    if (!user || user.password !== password)
+      return res.json({ status: false, message: 'Invalid credentials' });
 
-// اضافه کردن سکه
-app.post('/api/add-coins', (req, res) => {
-  const { username } = req.body;
-  const users = readJsonFile(USERS_FILE);
-  const index = users.findIndex(u => u.username === username);
-  if (index === -1) return res.json({ status: false, message: 'User not found' });
-
-  const user = users[index];
-
-  // اگر زمان دریافت اولین سکه وجود ندارد، به او 10 سکه بدهیم
-  if (!user.lastCoinAdd) {
-    user.coins = 10;
-    user.lastCoinAdd = new Date().toISOString();
-    writeJsonFile(USERS_FILE, users);
-    return res.json({ status: true, message: '10 coins added to your account!', coins: user.coins });
+    res.json({
+      status: true,
+      message: 'Login successful',
+      user: {
+        username: user.username,
+        phone: user.phone,
+        email: user.email,
+        coins: user.coins
+      }
+    });
+  } catch {
+    res.json({ status: false, message: 'Server error' });
   }
-
-  // اگر کمتر از 24 ساعت گذشته باشد، به کاربر زمان باقی‌مانده را نمایش دهیم
-  const lastAddTime = new Date(user.lastCoinAdd);
-  const timeDiff = new Date() - lastAddTime;
-  const hoursRemaining = Math.max(24 - timeDiff / (1000 * 60 * 60), 0); // ساعت باقی‌مانده
-  const minutesRemaining = Math.max(Math.floor((24 * 60) - timeDiff / (1000 * 60)), 0); // دقیقه باقی‌مانده
-  const secondsRemaining = Math.max(Math.floor((24 * 3600) - timeDiff / 1000), 0); // ثانیه باقی‌مانده
-
-  if (hoursRemaining > 0) {
-    // نمایش ساعت‌ها، دقیقه‌ها و ثانیه‌ها
-    return res.json({ status: false, message: `Wait: ${Math.floor(hoursRemaining)}h ${Math.floor(minutesRemaining % 60)}m ${Math.floor(secondsRemaining % 60)}s` });
-  }
-
-  // اگر 24 ساعت گذشته باشد، 10 سکه دیگر به کاربر داده می‌شود
-  user.coins += 10;
-  user.lastCoinAdd = new Date().toISOString();
-  writeJsonFile(USERS_FILE, users);
-  res.json({ status: true, message: '10 coins added', coins: user.coins });
 });
 
 app.post('/api/delete-bot', async (req, res) => {
@@ -174,15 +139,68 @@ app.post('/api/delete-bot', async (req, res) => {
 });
 
 
-app.get('/api/coins/:username', (req, res) => {
-  const username = req.params.username;
-  const users = readJsonFile(USERS_FILE);
-  const user = users.find(u => u.username === username);
-  if (!user) return res.json({ status: false, message: 'User not found' });
-  res.json({ status: true, coins: user.coins });
+
+app.post('/api/add-coins', async (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.json({ status: false, message: 'Username is required' });
+
+  try {
+    const { data: user } = await axios.get(`https://database-benbot.onrender.com/api/users/${username}`);
+
+    if (!user) return res.json({ status: false, message: 'User not found' });
+
+    // اگر قبلاً سکه‌ای نگرفته بود
+    if (!user.lastCoinAdd) {
+      user.coins = 10;
+      user.lastCoinAdd = new Date().toISOString();
+      await axios.put(`https://database-benbot.onrender.com/api/users/${username}`, {
+        coins: user.coins,
+        lastCoinAdd: user.lastCoinAdd
+      });
+      return res.json({ status: true, message: '10 coins added to your account!', coins: user.coins });
+    }
+
+    const lastAddTime = new Date(user.lastCoinAdd);
+    const now = new Date();
+    const diffMs = now - lastAddTime;
+
+    if (diffMs < 24 * 60 * 60 * 1000) {
+      const secondsRemaining = Math.floor((24 * 3600 * 1000 - diffMs) / 1000);
+      const h = Math.floor(secondsRemaining / 3600);
+      const m = Math.floor((secondsRemaining % 3600) / 60);
+      const s = secondsRemaining % 60;
+      return res.json({ status: false, message: `Wait: ${h}h ${m}m ${s}s` });
+    }
+
+    // اگر ۲۴ ساعت گذشته باشد
+    user.coins += 10;
+    user.lastCoinAdd = now.toISOString();
+
+    await axios.put(`https://database-benbot.onrender.com/api/users/${username}`, {
+      coins: user.coins,
+      lastCoinAdd: user.lastCoinAdd
+    });
+
+    res.json({ status: true, message: '10 coins added', coins: user.coins });
+  } catch (err) {
+    res.json({ status: false, message: 'Server error' });
+  }
 });
 
+app.get('/api/coins/:username', async (req, res) => {
+  const username = req.params.username;
 
+  try {
+    const { data: user } = await axios.get(`https://database-benbot.onrender.com/api/users/${username}`);
+
+    if (!user)
+      return res.json({ status: false, message: 'User not found' });
+
+    res.json({ status: true, coins: user.coins });
+  } catch (error) {
+    res.json({ status: false, message: 'Server error' });
+  }
+});
 app.get('/api/heroku-logs/:appName', async (req, res) => {
   const appName = req.params.appName;
   if (!appName) return res.status(400).json({ status: false, message: 'App name is required' });
@@ -369,6 +387,8 @@ app.get('/api/api/bot-repos', (req, res) => {
   res.json(bots);
 });
 
+
+
 app.post('/deploy', async (req, res) => {
   const { sessionId, appName, username, repoUrl } = req.body;
 
@@ -380,23 +400,22 @@ app.post('/deploy', async (req, res) => {
     : `benbot-${uuidv4().slice(0, 6)}`;
 
   try {
-    // 👤 بررسی و کم‌کردن سکه کاربر
-    const users = readJsonFile(USERS_FILE);
-    const userIndex = users.findIndex(u => u.username === username);
-
-    if (userIndex === -1) {
+    // 👤 دریافت و بررسی اطلاعات کاربر از دیتابیس آنلاین
+    const { data: user } = await axios.get(`https://database-benbot.onrender.com/api/users/${username}`);
+    if (!user)
       return res.status(404).json({ error: 'User not found' });
-    }
 
-    if (users[userIndex].coins < 10) {
+    if (user.coins < 10)
       return res.status(403).json({ error: 'Not enough coins to deploy a bot' });
-    }
 
-    users[userIndex].coins -= 10;
-    writeJsonFile(USERS_FILE, users);
+    // 💰 کم کردن 10 سکه از کاربر
+    await axios.put(`https://database-benbot.onrender.com/api/users/${username}`, {
+      ...user,
+      coins: user.coins - 10
+    });
 
-    // ✅ بررسی تعداد ربات‌ها
-    const bots = readJsonFile(BOTS_FILE);
+    // ✅ بررسی تعداد ربات‌ها از دیتابیس آنلاین
+    const { data: bots } = await axios.get(`https://database-benbot.onrender.com/api/bots`);
     if (bots.length >= 100) {
       return res.status(403).json({
         error: 'Server limit reached',
@@ -415,7 +434,7 @@ app.post('/deploy', async (req, res) => {
       source_blob: { url: repoUrl }
     }, { headers: herokuHeaders });
 
-    // 📦 ذخیره اطلاعات ربات در فایل
+    // 📦 ذخیره اطلاعات ربات در دیتابیس آنلاین
     const newBot = {
       name: generatedAppName,
       byUser: username,
@@ -425,17 +444,18 @@ app.post('/deploy', async (req, res) => {
       repo: repoUrl
     };
 
-    bots.push(newBot);
-    writeJsonFile(BOTS_FILE, bots);
+    await axios.post(`https://database-benbot.onrender.com/api/bots`, newBot);
 
-    // 🕒 بعد از ۲ دقیقه وضعیت را Active کنیم
-    setTimeout(() => {
-      const updatedBots = readJsonFile(BOTS_FILE);
-      const index = updatedBots.findIndex(b => b.name === generatedAppName);
-      if (index !== -1) {
-        updatedBots[index].status = 'Active';
-        writeJsonFile(BOTS_FILE, updatedBots);
+    // 🕒 آپدیت وضعیت ربات به Active بعد از ۲ دقیقه
+    setTimeout(async () => {
+      try {
+        await axios.put(`https://database-benbot.onrender.com/api/bots/${generatedAppName}`, {
+          ...newBot,
+          status: 'Active'
+        });
         console.log(`✅ Bot ${generatedAppName} status updated to Active`);
+      } catch (err) {
+        console.error(`❌ Failed to update bot status: ${err.message}`);
       }
     }, 2 * 60 * 1000);
 
@@ -457,20 +477,30 @@ app.post('/api/user-bots', (req, res) => {
   res.json(userBots);
 });
 
-app.post('/api/admin/add-coins', (req, res) => {
+app.post('/api/admin/add-coins', async (req, res) => {
   const { username, amount } = req.body;
+
   if (!username || typeof amount !== 'number') {
     return res.status(400).json({ status: false, message: 'Invalid input' });
   }
 
-  const users = readJsonFile(USERS_FILE);
-  const userIndex = users.findIndex(u => u.username === username);
-  if (userIndex === -1) return res.json({ status: false, message: 'User not found' });
+  try {
+    // دریافت کاربر
+    const { data: user } = await axios.get(`https://database-benbot.onrender.com/api/users/${username}`);
+    if (!user) return res.json({ status: false, message: 'User not found' });
 
-  users[userIndex].coins += amount;
-  writeJsonFile(USERS_FILE, users);
+    // افزایش سکه و ذخیره
+    await axios.put(`https://database-benbot.onrender.com/api/users/${username}`, {
+      ...user,
+      coins: user.coins + amount
+    });
 
-  res.json({ status: true, message: `Added ${amount} coins to ${username}` });
+    res.json({ status: true, message: `Added ${amount} coins to ${username}` });
+
+  } catch (err) {
+    console.error('❌ Error in add-coins:', err.message);
+    res.status(500).json({ status: false, message: 'Server error' });
+  }
 });
 
 app.get('/api/admin/all-bots', (req, res) => {
@@ -562,9 +592,18 @@ app.post('/api/admin/save-file', (req, res) => {
 });
 
 
-app.get('/api/admin/all-users', (req, res) => {
-  const users = readJsonFile(USERS_FILE);
-  res.json(users.map(({ password, ...rest }) => rest)); // رمز عبور حذف شود
+app.get('/api/admin/all-users', async (req, res) => {
+  try {
+    const { data: users } = await axios.get('https://database-benbot.onrender.com/api/users');
+
+    // حذف رمز عبور از هر کاربر
+    const usersWithoutPasswords = users.map(({ password, ...rest }) => rest);
+
+    res.json(usersWithoutPasswords);
+  } catch (err) {
+    console.error('❌ Error fetching all users:', err.message);
+    res.status(500).json({ status: false, message: 'Server error while fetching users' });
+  }
 });
 
 
@@ -664,23 +703,51 @@ app.post('/files/geting/:filepath(*)', (req, res) => {
 });
 
 // نمایش اطلاعات یک کاربر خاص
-app.get('/api/admin/user/:username', (req, res) => {
-  const users = readJsonFile(USERS_FILE);
-  const user = users.find(u => u.username === req.params.username);
-  if (!user) return res.status(404).json({ status: false, message: 'User not found' });
-  const { password, ...safeUser } = user;
-  res.json({ status: true, user: safeUser });
+app.get('/api/admin/user/:username', async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const { data: users } = await axios.get('https://database-benbot.onrender.com/api/users');
+    const user = users.find(u => u.username === username);
+
+    if (!user) {
+      return res.status(404).json({ status: false, message: 'User not found' });
+    }
+
+    const { password, ...safeUser } = user;
+    res.json({ status: true, user: safeUser });
+
+  } catch (err) {
+    console.error('❌ Error fetching user:', err.message);
+    res.status(500).json({ status: false, message: 'Server error while fetching user' });
+  }
 });
 
 // حذف کاربر
-app.post('/api/admin/delete-user', (req, res) => {
+app.post('/api/admin/delete-user', async (req, res) => {
   const { username } = req.body;
-  let users = readJsonFile(USERS_FILE);
-  const index = users.findIndex(u => u.username === username);
-  if (index === -1) return res.json({ status: false, message: 'User not found' });
-  users.splice(index, 1);
-  writeJsonFile(USERS_FILE, users);
-  res.json({ status: true, message: `User ${username} deleted.` });
+
+  if (!username) {
+    return res.status(400).json({ status: false, message: 'Username is required' });
+  }
+
+  try {
+    const { data: users } = await axios.get('https://database-benbot.onrender.com/api/users');
+    const user = users.find(u => u.username === username);
+
+    if (!user) {
+      return res.json({ status: false, message: 'User not found' });
+    }
+
+    // ارسال درخواست حذف
+    await axios.delete(`https://database-benbot.onrender.com/api/users/${user._id}`);
+
+    res.json({ status: true, message: `User ${username} deleted.` });
+
+  } catch (err) {
+    console.error('❌ Delete user error:', err.message);
+    res.status(500).json({ status: false, message: 'Server error while deleting user' });
+  }
 });
 
 app.post('/api/admin/delete-file', (req, res) => {
@@ -703,24 +770,36 @@ app.post('/api/admin/delete-file', (req, res) => {
 });
 
 
-app.post('/api/admin/remove-coins', (req, res) => {
+app.post('/api/admin/remove-coins', async (req, res) => {
   const { username, amount } = req.body;
+
   if (!username || typeof amount !== 'number') {
     return res.status(400).json({ status: false, message: 'Invalid input' });
   }
 
-  const users = readJsonFile(USERS_FILE);
-  const userIndex = users.findIndex(u => u.username === username);
-  if (userIndex === -1) return res.json({ status: false, message: 'User not found' });
+  try {
+    // گرفتن کاربر از API ریموت
+    const userRes = await axios.get(`https://database-benbot.onrender.com/api/users/${username}`);
+    const user = userRes.data;
 
-  if (users[userIndex].coins < amount) {
-    return res.json({ status: false, message: 'User does not have enough coins' });
+    if (user.coins === undefined || user.coins < amount) {
+      return res.json({ status: false, message: 'User does not have enough coins' });
+    }
+
+    // کم کردن کوین‌ها
+    const updatedUser = { ...user, coins: user.coins - amount };
+
+    // آپدیت کاربر
+    await axios.put(`https://database-benbot.onrender.com/api/users/${username}`, updatedUser);
+
+    res.json({ status: true, message: `Removed ${amount} coins from ${username}` });
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return res.json({ status: false, message: 'User not found' });
+    }
+    console.error(error);
+    res.status(500).json({ status: false, message: 'Server error' });
   }
-
-  users[userIndex].coins -= amount;
-  writeJsonFile(USERS_FILE, users);
-
-  res.json({ status: true, message: `Removed ${amount} coins from ${username}` });
 });
 
 // Static Routes
